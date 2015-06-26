@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QLabel" name="pictureContainer">
+   <widget class="Picture" name="pictureContainer">
     <property name="geometry">
      <rect>
       <x>0</x>
@@ -88,6 +88,13 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>Picture</class>
+   <extends>QLabel</extends>
+   <header location="global">picture.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="myres.qrc"/>
  </resources>
