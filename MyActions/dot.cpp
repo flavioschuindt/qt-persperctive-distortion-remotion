@@ -6,7 +6,7 @@
 Dot::Dot(QWidget *parent)
     : QLabel(parent)
 {
-
+    resize(10, 10);
 }
 
 Dot::~Dot()
@@ -20,7 +20,7 @@ void Dot::paintEvent(QPaintEvent *e)
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setBrush(Qt::red);
     QPen paintpen(Qt::red);
-    paintpen.setWidth(7);
+    paintpen.setWidth(9);
     QPoint p1;
     p1.setX(0);
     p1.setY(0);
