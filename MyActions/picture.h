@@ -2,6 +2,10 @@
 #define PICTURE_H
 
 #include <QLabel>
+#include <Eigen/Dense>
+
+using namespace Eigen;
+using namespace std;
 
 class Picture: public QLabel
 {
@@ -11,6 +15,11 @@ public:
     ~Picture();
 protected:
     void mousePressEvent(QMouseEvent *e);
+private:
+    vector<Vector3i> selectedPoints;
+    vector<Vector3d> realWorldPoints;
+    Vector2i *boardDimensions;
+    double aspectRatio;
 };
 
 #endif // PICTURE_H

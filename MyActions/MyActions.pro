@@ -15,13 +15,17 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     picture.cpp \
-    dot.cpp
+    dot.cpp \
+    utils.cpp
 
 HEADERS  += mainwindow.h \
     picture.h \
-    dot.h
+    dot.h \
+    utils.h
 
 FORMS    += mainwindow.ui
 
 RESOURCES += \
     myres.qrc
+
+INCLUDEPATH += /usr/include/eigen3
