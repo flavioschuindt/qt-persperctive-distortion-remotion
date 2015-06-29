@@ -65,17 +65,10 @@ void Picture::mousePressEvent(QMouseEvent *e)
 
                MatrixXd H = Utils::calculateHomographyMatrix(selectedPoints, realWorldPoints);
 
-               /*for (std::vector<Vector3i>::iterator it = selectedPoints.begin() ; it != selectedPoints.end(); ++it)
-               {
-                   Vector3i selectedPoint = *it;
-                   QMessageBox::information(this, "title", QString::number(selectedPoint.x()) + " - " + QString::number(selectedPoint.y()));
-               }
+               QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/MyActions/brahma01.jpg");
+               QImage outputImage = Utils::applyHomography(H.inverse(), inputImage, 800, 600);
+               Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
 
-               for (std::vector<Vector3d>::iterator it = realWorldPoints.begin() ; it != realWorldPoints.end(); ++it)
-               {
-                   Vector3d realWorldPoint = *it;
-                   QMessageBox::information(this, "title", QString::number(realWorldPoint.x()) + " - " + QString::number(realWorldPoint.y()));
-               }*/
            }
     }
 

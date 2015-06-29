@@ -30,7 +30,71 @@ MatrixXd Utils::calculateHomographyMatrix(vector<Vector3i> selectedPoints, vecto
 
     H << x(0), x(1), x(2), x(3), x(4), x(5), x(6), x(7), 1;
 
-
     return H;
+}
+
+void Utils::saveImage(QImage picture, string outputFile)
+{
+    QImageWriter writer(outputFile.c_str());
+    writer.write(picture);
+}
+
+void Utils::saveImage(MatrixXi rawData, string outputFile)
+{
+    QImage* img = new QImage(rawData.cols(), rawData.rows(), QImage::Format_RGB16);
+    for (int y = 0; y < img->height(); y++)
+    {
+        VectorXi a = rawData.row(y);
+        memcpy(img->scanLine(y), (void*)&a, img->bytesPerLine());
+    }
+    QString file = QString::fromUtf8(outputFile.c_str());
+    img->save(file);
+}
+
+QImage Utils::applyHomography(MatrixXd H, QImage inputImage, int w, int h)
+{
+    QImage outputImage(w, h, QImage::Format_RGB32);
+    MatrixXd x(3,1);
+    MatrixXd y(3,1);
+
+    QPainter painter;
+    painter.begin(&outputImage);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBackgroundMode(Qt::TransparentMode);
+    QPen pen;
+
+    for (int i=0; i < h; i++)
+    {
+        for (int j=0; j<w; j++)
+        {
+            x << i, j, 1;
+            y = H*x;
+            y << round(y(0,0)/y(2,0)), round(y(1,0)/y(2,0)), 1;
+
+            if (y(0,0) >= 0 && y(0,0) < inputImage.width() && y(1,0) >= 0 && y(1,0) < inputImage.height())
+            {
+                // Point lies inside the input Image
+                QColor clrCurrent( inputImage.pixel( y(0,0), y(1,0) ) );
+                pen.setColor(clrCurrent);
+                pen.setWidth(5);
+                pen.setCapStyle(Qt::RoundCap);
+                painter.setPen(pen);
+                painter.drawPoint(i, j);
+
+            }
+            else
+            {
+                // Point lies outside the input Image
+                QColor clrCurrent(0,0,0);
+                pen.setColor(clrCurrent);
+                pen.setWidth(5);
+                pen.setCapStyle(Qt::RoundCap);
+                painter.setPen(pen);
+                painter.drawPoint(i, j);
+            }
+        }
+    }
+    painter.end();
+    return outputImage;
 }
 
