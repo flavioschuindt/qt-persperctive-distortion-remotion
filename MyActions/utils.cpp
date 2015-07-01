@@ -23,7 +23,7 @@ MatrixXd Utils::calculateHomographyMatrix(vector<Vector3i> selectedPoints, vecto
         B.row(i*2) << selectedPointX;
         B.row(i*2 +1) << selectedPointY;
     }
-    A  = A.inverse();
+    A  = A.inverse().eval();
 
     MatrixXd x = A*B;
     Matrix3d H;
@@ -51,35 +51,72 @@ void Utils::saveImage(MatrixXi rawData, string outputFile)
     img->save(file);
 }
 
-QImage Utils::applyHomography(MatrixXd H, QImage inputImage, int w, int h)
+QImage Utils::applyHomography(MatrixXd H, QImage inputImage)
 {
-    QImage outputImage(w, h, QImage::Format_RGB32);
     MatrixXd x(3,1);
     MatrixXd y(3,1);
+    vector<int> x_values;
+    vector<int> y_values;
 
+    int width_input = inputImage.width();
+    int height_input = inputImage.height();
+    int height_output = 0;
+    int width_output = 960;
+
+    // Calculate output image corners
+    x << 0, 0, 1;
+    y = H*x;
+    x_values.push_back(y(0,0)/y(2,0));
+    y_values.push_back(y(1,0)/y(2,0));
+
+    x << width_input, 0, 1;
+    y = H*x;
+    x_values.push_back(y(0,0)/y(2,0));
+    y_values.push_back(y(1,0)/y(2,0));
+
+    x << width_input, height_input, 1;
+    y = H*x;
+    x_values.push_back(y(0,0)/y(2,0));
+    y_values.push_back(y(1,0)/y(2,0));
+
+    x << 0, height_input, 1;
+    y = H*x;
+    x_values.push_back(y(0,0)/y(2,0));
+    y_values.push_back(y(1,0)/y(2,0));
+
+    int max_x = (*max_element(x_values.begin(), x_values.end()));
+    int min_x = (*min_element(x_values.begin(), x_values.end()));
+    int max_y = (*max_element(y_values.begin(), y_values.end()));
+    int min_y = (*min_element(y_values.begin(), y_values.end()));
+    height_output = width_output / (double)((max_x-min_x)/(double)(max_y-min_y));
+
+    QImage outputImage(width_output, height_output, QImage::Format_ARGB32);
     QPainter painter;
     painter.begin(&outputImage);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setBackgroundMode(Qt::TransparentMode);
     QPen pen;
 
-    for (int i=0; i < h; i++)
+    H = H.inverse().eval();
+
+    for (int i=0; i < height_output; i++)
     {
-        for (int j=0; j<w; j++)
+        for (int j=0; j<width_output; j++)
         {
-            x << i, j, 1;
+            x << j, i, 1;
             y = H*x;
             y << round(y(0,0)/y(2,0)), round(y(1,0)/y(2,0)), 1;
 
-            if (y(0,0) >= 0 && y(0,0) < inputImage.width() && y(1,0) >= 0 && y(1,0) < inputImage.height())
+            if (y(0,0) >= 0 && y(0,0) < inputImage.width()
+                    && y(1,0) >= 0 && y(1,0) < inputImage.height())
             {
                 // Point lies inside the input Image
-                QColor clrCurrent( inputImage.pixel( y(0,0), y(1,0) ) );
+                QRgb clrCurrent( inputImage.pixel( y(0,0), y(1,0) ) );
                 pen.setColor(clrCurrent);
-                pen.setWidth(5);
+                pen.setWidth(1);
                 pen.setCapStyle(Qt::RoundCap);
                 painter.setPen(pen);
-                painter.drawPoint(i, j);
+                painter.drawPoint(j, i);
 
             }
             else
@@ -87,10 +124,10 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage, int w, int h)
                 // Point lies outside the input Image
                 QColor clrCurrent(0,0,0);
                 pen.setColor(clrCurrent);
-                pen.setWidth(5);
+                pen.setWidth(1);
                 pen.setCapStyle(Qt::RoundCap);
                 painter.setPen(pen);
-                painter.drawPoint(i, j);
+                painter.drawPoint(j, i);
             }
         }
     }

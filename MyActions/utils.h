@@ -23,7 +23,7 @@ public:
     static MatrixXd calculateHomographyMatrix(vector<Vector3i> selectedPoints, vector<Vector3d> realWorldPoints);
     static void saveImage(MatrixXi rawData, string outputFile);
     static void saveImage(QImage picture, string outputFile);
-    static QImage applyHomography(MatrixXd H, QImage inputImage, int w, int h);
+    static QImage applyHomography(MatrixXd H, QImage inputImage);
 };
 
 #endif // UTILS_H
