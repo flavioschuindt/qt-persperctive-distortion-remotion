@@ -30,7 +30,7 @@ MatrixXd Utils::calculateHomographyMatrix(vector<Vector3i> selectedPoints, vecto
 
     H << x(0), x(1), x(2), x(3), x(4), x(5), x(6), x(7), 1;
 
-    return H;
+    return H.inverse();
 }
 
 void Utils::saveImage(QImage picture, string outputFile)
@@ -55,8 +55,8 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage)
 {
     MatrixXd x(3,1);
     MatrixXd y(3,1);
-    vector<int> x_values;
-    vector<int> y_values;
+    vector<double> x_values;
+    vector<double> y_values;
 
     int width_input = inputImage.width();
     int height_input = inputImage.height();
@@ -84,11 +84,11 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage)
     x_values.push_back(y(0,0)/y(2,0));
     y_values.push_back(y(1,0)/y(2,0));
 
-    int max_x = (*max_element(x_values.begin(), x_values.end()));
-    int min_x = (*min_element(x_values.begin(), x_values.end()));
-    int max_y = (*max_element(y_values.begin(), y_values.end()));
-    int min_y = (*min_element(y_values.begin(), y_values.end()));
-    height_output = width_output / (double)((max_x-min_x)/(double)(max_y-min_y));
+    double max_x = (*max_element(x_values.begin(), x_values.end()));
+    double min_x = (*min_element(x_values.begin(), x_values.end()));
+    double max_y = (*max_element(y_values.begin(), y_values.end()));
+    double min_y = (*min_element(y_values.begin(), y_values.end()));
+    height_output = width_output / ((max_x-min_x)/(max_y-min_y));
 
     QImage outputImage(width_output, height_output, QImage::Format_ARGB32);
     QPainter painter;
@@ -99,11 +99,13 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage)
 
     H = H.inverse().eval();
 
+    double step = (max_x - min_x) / width_output;
+
     for (int i=0; i < height_output; i++)
     {
         for (int j=0; j<width_output; j++)
         {
-            x << j, i, 1;
+            x << min_x+j*step, min_y+i*step, 1;
             y = H*x;
             y << round(y(0,0)/y(2,0)), round(y(1,0)/y(2,0)), 1;
 

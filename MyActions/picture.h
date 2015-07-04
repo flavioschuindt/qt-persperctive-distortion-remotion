@@ -19,7 +19,6 @@ private:
     vector<Vector3i> selectedPoints;
     vector<Vector3d> realWorldPoints;
     Vector2i *boardDimensions;
-    double aspectRatio;
 };
 
 #endif // PICTURE_H
