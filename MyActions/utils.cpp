@@ -23,9 +23,9 @@ MatrixXd Utils::calculateHomographyMatrix(vector<Vector3i> selectedPoints, vecto
         B.row(i*2) << selectedPointX;
         B.row(i*2 +1) << selectedPointY;
     }
-    A  = A.inverse().eval();
+    //A  = A.inverse().eval();
 
-    MatrixXd x = A*B;
+    MatrixXd x = A.fullPivLu().solve(B);
     Matrix3d H;
 
     H << x(0), x(1), x(2), x(3), x(4), x(5), x(6), x(7), 1;
@@ -51,7 +51,44 @@ void Utils::saveImage(MatrixXi rawData, string outputFile)
     img->save(file);
 }
 
-QImage Utils::applyHomography(MatrixXd H, QImage inputImage)
+QColor Utils::interpolate(QImage img, MatrixXd y)
+{
+    double mappedX;
+    double mappedY;
+    int mappedXFloor, mappedXCeil, mappedYFloor, mappedYCeil;
+
+    mappedX = y(0,0)/y(2,0);
+    mappedY = y(1,0)/y(2,0);
+
+    mappedXFloor = floor(mappedX);
+    mappedXCeil = ceil(mappedX);
+    mappedYFloor = floor(mappedY);
+    mappedYCeil = ceil(mappedY);
+
+    QColor leftTop (img.pixel(mappedXFloor, mappedYFloor));
+    QColor rightTop (img.pixel(mappedXCeil, mappedYFloor));
+    QColor leftBottom (img.pixel(mappedXFloor, mappedYCeil));
+    QColor rightBottom (img.pixel(mappedXCeil, mappedYCeil));
+
+    QColor a ( (((mappedXCeil - y(0,0)) * leftTop.red()) + ( (y(0,0) - mappedXFloor) * rightTop.red())),
+               (((mappedXCeil - y(0,0)) * leftTop.green()) + ( (y(0,0) - mappedXFloor) * rightTop.green())),
+               (((mappedXCeil - y(0,0)) * leftTop.blue()) + ( (y(0,0) - mappedXFloor) * rightTop.blue()))
+               );
+    QColor b ( (((mappedXCeil - y(0,0)) * leftBottom.red()) + ( (y(0,0) - mappedXFloor) * rightBottom.red())),
+               (((mappedXCeil - y(0,0)) * leftBottom.green()) + ( (y(0,0) - mappedXFloor) * rightBottom.green())),
+               (((mappedXCeil - y(0,0)) * leftBottom.blue()) + ( (y(0,0) - mappedXFloor) * rightBottom.blue()))
+               );
+
+    QColor c ( ((mappedYCeil - y(1,0)) * a.red() + ( (y(1,0) - mappedYFloor) * b.red() )),
+               ((mappedYCeil - y(1,0)) * a.green() + ( (y(1,0) - mappedYFloor) * b.green() )),
+               ((mappedYCeil - y(1,0)) * a.blue() + ( (y(1,0) - mappedYFloor) * b.blue() ))
+               );
+
+    return c;
+
+}
+
+QImage Utils::applyHomography(MatrixXd H, QImage inputImage, vector<Vector3i> region)
 {
     MatrixXd x(3,1);
     MatrixXd y(3,1);
@@ -64,22 +101,22 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage)
     int width_output = 960;
 
     // Calculate output image corners
-    x << 0, 0, 1;
+    x << region.at(0)(0), region.at(0)(1), 1;
     y = H*x;
     x_values.push_back(y(0,0)/y(2,0));
     y_values.push_back(y(1,0)/y(2,0));
 
-    x << width_input, 0, 1;
+    x << region.at(1)(0), region.at(1)(1), 1;
     y = H*x;
     x_values.push_back(y(0,0)/y(2,0));
     y_values.push_back(y(1,0)/y(2,0));
 
-    x << width_input, height_input, 1;
+    x << region.at(2)(0), region.at(2)(1), 1;
     y = H*x;
     x_values.push_back(y(0,0)/y(2,0));
     y_values.push_back(y(1,0)/y(2,0));
 
-    x << 0, height_input, 1;
+    x << region.at(3)(0), region.at(3)(1), 1;
     y = H*x;
     x_values.push_back(y(0,0)/y(2,0));
     y_values.push_back(y(1,0)/y(2,0));
@@ -107,14 +144,18 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage)
         {
             x << min_x+j*step, min_y+i*step, 1;
             y = H*x;
-            y << round(y(0,0)/y(2,0)), round(y(1,0)/y(2,0)), 1;
 
-            if (y(0,0) >= 0 && y(0,0) < inputImage.width()
-                    && y(1,0) >= 0 && y(1,0) < inputImage.height())
+            y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
+
+            if (y(0,0) >= 0 && y(0,0) <= inputImage.width() - 1
+                    && y(1,0) >= 0 && y(1,0) <= inputImage.height() - 1)
             {
                 // Point lies inside the input Image
-                QRgb clrCurrent( inputImage.pixel( y(0,0), y(1,0) ) );
-                pen.setColor(clrCurrent);
+
+                // Do interpolation
+                QColor c = interpolate(inputImage, y);
+                //QRgb clrCurrent( inputImage.pixel( y(0,0), y(1,0) ) );
+                pen.setColor(c);
                 pen.setWidth(1);
                 pen.setCapStyle(Qt::RoundCap);
                 painter.setPen(pen);

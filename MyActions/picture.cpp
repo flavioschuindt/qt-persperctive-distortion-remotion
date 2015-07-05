@@ -19,7 +19,7 @@ Picture::~Picture()
 void Picture::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton) {
-           if (selectedPoints.size() < 4)
+           if (selectedPoints.size() < 8)
            {
                Dot* dot = new Dot(this);
                dot->show();
@@ -49,7 +49,7 @@ void Picture::mousePressEvent(QMouseEvent *e)
                MatrixXd H = Utils::calculateHomographyMatrix(selectedPoints, realWorldPoints);
 
                QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/MyActions/brahma01.jpg");
-               QImage outputImage = Utils::applyHomography(H, inputImage);
+               QImage outputImage = Utils::applyHomography(H, inputImage, vector<Vector3i>(selectedPoints.begin()+4, selectedPoints.end()));
                Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
 
            }
