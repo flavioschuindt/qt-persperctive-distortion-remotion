@@ -48,7 +48,7 @@ void Picture::mousePressEvent(QMouseEvent *e)
                // Calculate H Matrix
                MatrixXd H = Utils::calculateHomographyMatrix(selectedPoints, realWorldPoints);
 
-               QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/MyActions/brahma01.jpg");
+               QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-1/MyActions/brahma01.jpg");
                QImage outputImage = Utils::applyHomography(H, inputImage, vector<Vector3i>(selectedPoints.begin()+4, selectedPoints.end()));
                Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
 
