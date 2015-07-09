@@ -16,12 +16,14 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     picture.cpp \
     dot.cpp \
-    utils.cpp
+    utils.cpp \
+    line.cpp
 
 HEADERS  += mainwindow.h \
     picture.h \
     dot.h \
-    utils.h
+    utils.h \
+    line.h
 
 FORMS    += mainwindow.ui
 
