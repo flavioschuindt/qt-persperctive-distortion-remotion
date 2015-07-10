@@ -1,7 +1,4 @@
 #include "dot.h"
-#include <QPainter>
-#include <QMouseEvent>
-#include <QMessageBox>
 
 Dot::Dot(QWidget *parent)
     : QLabel(parent)

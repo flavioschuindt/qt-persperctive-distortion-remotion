@@ -2,6 +2,9 @@
 #define DOT_H
 
 #include <QLabel>
+#include <QPainter>
+#include <QMouseEvent>
+#include <QMessageBox>
 
 class Dot: public QLabel
 {

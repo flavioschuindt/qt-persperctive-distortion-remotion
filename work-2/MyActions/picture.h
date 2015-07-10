@@ -1,8 +1,13 @@
 #ifndef PICTURE_H
 #define PICTURE_H
 
+#include "line.h"
 #include <QLabel>
 #include <Eigen/Dense>
+#include <QPainter>
+#include <QMouseEvent>
+#include <QMessageBox>
+#include <QPicture>
 
 using namespace Eigen;
 using namespace std;
@@ -16,7 +21,8 @@ public:
 protected:
     void mousePressEvent(QMouseEvent *e);
 private:
-    vector<Vector3i> selectedPoints;
+    QList<Dot*> selectedPoints;
+    QList<Line*> selectedLines;
     vector<Vector3d> realWorldPoints;
     Vector2i *boardDimensions;
 };

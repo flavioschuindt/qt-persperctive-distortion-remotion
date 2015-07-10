@@ -12,6 +12,8 @@
 #include <iostream>
 #include <math.h>
 
+#include "line.h"
+
 using namespace Eigen;
 using namespace std;
 
@@ -25,6 +27,8 @@ public:
     static void saveImage(QImage picture, string outputFile);
     static QImage applyHomography(MatrixXd H, QImage inputImage, vector<Vector3i> region);
     static QColor interpolate(QImage img, MatrixXd y);
+    static Vector3d getHorizonLine(QList<Line*> paralellLines);
+    static Matrix3d calculateHomographyMatrixFromHorizonLine(Vector3d horizonLine);
 };
 
 #endif // UTILS_H

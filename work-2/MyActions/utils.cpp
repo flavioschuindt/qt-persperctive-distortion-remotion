@@ -178,3 +178,43 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage, vector<Vector3i> re
     return outputImage;
 }
 
+Vector3d Utils::getHorizonLine(QList<Line*> paralellLines)
+{
+    Line *firstLine = paralellLines.at(0);
+    Line *secondLine = paralellLines.at(1);
+
+    Vector3d a(firstLine->getA()->x(), firstLine->getA()->y(), 1);
+    Vector3d b(firstLine->getB()->x(), firstLine->getB()->y(), 1);
+    Vector3d firstLineInHomogeneousCoordinates = a.cross(b);
+
+    a << (secondLine->getA()->x(), secondLine->getA()->y(), 1);
+    b << (secondLine->getB()->x(), secondLine->getB()->y(), 1);
+    Vector3d secondLineInHomogeneousCoordinates = a.cross(b);
+
+    Vector3d firstPointHorizonLineInHomogeneousCoordinates = firstLineInHomogeneousCoordinates.cross(secondLineInHomogeneousCoordinates);
+
+
+    firstLine = paralellLines.at(2);
+    secondLine = paralellLines.at(3);
+
+    a << (firstLine->getA()->x(), firstLine->getA()->y(), 1);
+    b << (firstLine->getB()->x(), firstLine->getB()->y(), 1);
+    firstLineInHomogeneousCoordinates = a.cross(b);
+
+    a << (secondLine->getA()->x(), secondLine->getA()->y(), 1);
+    b << (secondLine->getB()->x(), secondLine->getB()->y(), 1);
+    secondLineInHomogeneousCoordinates = a.cross(b);
+
+    Vector3d secondPointHorizonLineInHomogeneousCoordinates = firstLineInHomogeneousCoordinates.cross(secondLineInHomogeneousCoordinates);
+
+    return firstPointHorizonLineInHomogeneousCoordinates.cross(secondPointHorizonLineInHomogeneousCoordinates);
+
+}
+
+Matrix3d Utils::calculateHomographyMatrixFromHorizonLine(Vector3d horizonLine)
+{
+    Matrix3d H;
+    H << 1, 0, 0, 0, 1, 0, horizonLine(0)/horizonLine(2), horizonLine(1)/horizonLine(2), 1;
+    return H;
+}
+

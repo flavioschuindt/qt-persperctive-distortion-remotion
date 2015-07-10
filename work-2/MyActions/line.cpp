@@ -1,7 +1,4 @@
 #include "line.h"
-#include <QPainter>
-#include <QMouseEvent>
-#include <QMessageBox>
 
 Line::Line(QWidget *parent)
     : QLabel(parent)
@@ -19,47 +16,26 @@ void Line::paintEvent(QPaintEvent *e)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setPen(QPen(Qt::red, 2));
-    painter.drawLine(x1, y1, x2, y2);
+    painter.drawLine(a->x(), a->y(), b->x(), b->y());
     painter.end();
 }
-int Line::getY2() const
+Dot *Line::getB() const
 {
-    return y2;
+    return b;
 }
 
-void Line::setY2(int value)
+void Line::setB(Dot *value)
 {
-    y2 = value;
+    b = value;
 }
 
-int Line::getY1() const
+Dot *Line::getA() const
 {
-    return y1;
+    return a;
 }
 
-void Line::setY1(int value)
+void Line::setA(Dot *value)
 {
-    y1 = value;
+    a = value;
 }
-
-int Line::getX2() const
-{
-    return x2;
-}
-
-void Line::setX2(int value)
-{
-    x2 = value;
-}
-
-int Line::getX1() const
-{
-    return x1;
-}
-
-void Line::setX1(int value)
-{
-    x1 = value;
-}
-
 
