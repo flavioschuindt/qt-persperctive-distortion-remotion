@@ -20,11 +20,13 @@ public:
     ~Picture();
 protected:
     void mousePressEvent(QMouseEvent *e);
+    bool isReadyToProcessUserInputedData(QMouseEvent *e);
 private:
     QList<Dot*> selectedPoints;
     QList<Line*> selectedLines;
     vector<Vector3d> realWorldPoints;
     Vector2i *boardDimensions;
+    bool showMessage;
 };
 
 #endif // PICTURE_H
