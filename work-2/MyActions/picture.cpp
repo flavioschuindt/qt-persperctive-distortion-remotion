@@ -25,7 +25,6 @@ void Picture::mousePressEvent(QMouseEvent *e)
                    dot->show();
                    update();
                    dot->move(e->x(), e->y());
-                   //Vector3i *newPoint = new Vector3i(e->x(), e->y(), 1);
                    selectedPoints.push_back(dot);
                }
                else
@@ -37,46 +36,29 @@ void Picture::mousePressEvent(QMouseEvent *e)
                   selectedPoints.clear();
                   line->show();
                   update();
-                  /*QLabel l;
-                  QPicture pi;
-                  QPainter p(&pi);
-
-                  p.setRenderHint(QPainter::Antialiasing);
-                  p.setPen(QPen(Qt::black, 12, Qt::DashDotLine, Qt::RoundCap));
-                  p.drawLine(0, 0, 200, 200);
-                  p.end(); // Don't forget this line!
-
-                  l.setPicture(pi);
-                  l.resize(10,10);
-                  l.show();
-                  double w = (double)boardDimensions->x();
-                   double h = (double)boardDimensions->y();
-
-                   double divisor = w;
-                   if(w>h)
-                    divisor = h;
-
-                   w = ((double)boardDimensions->x()/divisor);
-                   h = ((double)boardDimensions->y()/divisor);
-
-                   realWorldPoints.push_back(Vector3d(0, 0, 1));
-                   realWorldPoints.push_back(Vector3d(0, h, 1));
-                   realWorldPoints.push_back(Vector3d(w, h, 1));
-                   realWorldPoints.push_back(Vector3d(w, 0, 1));
-
-                   // Calculate H Matrix
-                   MatrixXd H = Utils::calculateHomographyMatrix(selectedPoints, realWorldPoints);
-
-                   QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-1/MyActions/brahma01.jpg");
-                   QImage outputImage = Utils::applyHomography(H, inputImage, vector<Vector3i>(selectedPoints.begin()+4, selectedPoints.end()));
-                   Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");*/
-
                }
 
           }
           else
           {
-              QMessageBox::information(this, "title", "x");
+               if (selectedPoints.size() < 4)
+               {
+                   Dot* dot = new Dot(this);
+                   dot->show();
+                   update();
+                   dot->move(e->x(), e->y());
+                   selectedPoints.push_back(dot);
+               }
+               else
+               {
+                   //QMessageBox::information(this, "title", "x");
+                   // Calculate H Matrix
+                   MatrixXd H = Utils::calculateHomographyMatrixFromHorizonLine(Utils::getHorizonLine(selectedLines));
+
+                   QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-2/MyActions/piso-perspectiva.jpg");
+                   QImage outputImage = Utils::applyHomography(H, inputImage, selectedPoints);
+                   Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
+               }
           }
 
     }
