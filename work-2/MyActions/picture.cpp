@@ -105,7 +105,19 @@ void Picture::mousePressEvent(QMouseEvent *e)
          {
              if (isReadyToProcessUserInputedData(e))
              {
-                  QMessageBox::information(this, "Próximo Passo", "TODO: IMPLEMENT");
+                   QList<Line*> firstPair;
+                   QList<Line*> secondPair;
+                   firstPair.append(selectedLines.at(0));
+                   firstPair.append(selectedLines.at(1));
+                   secondPair.append(selectedLines.at(2));
+                   secondPair.append(selectedLines.at(3));
+                   Matrix2d S = Utils::getS(firstPair, secondPair); // S == KKt
+                   MatrixXd K = Utils::getUpperTriangularCholesky(S);
+                   Matrix3d H = Utils::calculateHomographyMatrixFromCholeskyDecomposition(K);
+
+                   QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-2/MyActions/piso-afim-retas-paralelas.jpg");
+                   QImage outputImage = Utils::applyHomography(H, inputImage, selectedPoints);
+                   Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
              }
          }
 

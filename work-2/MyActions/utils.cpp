@@ -214,7 +214,53 @@ Matrix3d Utils::calculateHomographyMatrixFromHorizonLine(Vector3d horizonLine)
 {
     Matrix3d H;
     H << 1, 0, 0, 0, 1, 0, horizonLine(0), horizonLine(1), horizonLine(2);
-    cout << H << endl;
+    return H;
+}
+
+Vector3d Utils::getLineInHomogeneousCoordinates(Line *line)
+{
+    Vector3d a, b;
+    a << line->getA()->x(), line->getA()->y(), 1;
+    b << line->getB()->x(), line->getB()->y(), 1;
+    return a.cross(b);
+}
+
+Matrix2d Utils::getS(QList<Line*> firstOrtoghonalLines, QList<Line*> secondOrthogonalLine)
+{
+    Matrix2d S;
+
+    Vector3d l1 = getLineInHomogeneousCoordinates(firstOrtoghonalLines.at(0));
+    Vector3d m1 = getLineInHomogeneousCoordinates(firstOrtoghonalLines.at(1));
+    Vector3d l2 = getLineInHomogeneousCoordinates(secondOrthogonalLine.at(0));
+    Vector3d m2 = getLineInHomogeneousCoordinates(secondOrthogonalLine.at(1));
+
+    // A * x = b.
+    Matrix2d A;
+    MatrixXd B(2,1);
+
+    A << l1(0)*m1(0), l1(0)*m1(1)+l1(1)*m1(0), l2(0)*m2(0), l2(0)*m2(1)+l2(1)*m2(0);
+    B << -l1(1)*m1(1), -l2(1)*m2(1);
+
+    MatrixXd x = A.fullPivLu().solve(B);
+
+    S << x(0,0), x(1,0), x(1,0), 1;
+
+    return S;
+}
+
+MatrixXd Utils::getUpperTriangularCholesky(MatrixXd KKt)
+{
+    LLT<MatrixXd> llt(KKt);
+    MatrixXd K = llt.matrixU();
+
+    return K;
+
+}
+
+Matrix3d Utils::calculateHomographyMatrixFromCholeskyDecomposition(MatrixXd K)
+{
+    Matrix3d H;
+    H << K(0,0), K(0,1), 0, K(1,0), K(1,1), 0, 0, 0, 1;
     return H;
 }
 

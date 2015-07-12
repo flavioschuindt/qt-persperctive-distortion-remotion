@@ -29,7 +29,7 @@ void MainWindow::on_actionOpen_triggered()
     //QMessageBox::information(this, "title", "Hello");
 
     QImage imageObject;
-    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-2/MyActions/piso-perspectiva.jpg");
+    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-2/MyActions/piso-afim-retas-paralelas.jpg");
     ui->pictureContainer->setPixmap(QPixmap::fromImage(imageObject));
     QSize size = ui->pictureContainer->pixmap()->size();
     ui->pictureContainer->resize(size.width(), size.height());
