@@ -20,7 +20,7 @@ public:
     ~Picture();
 protected:
     void mousePressEvent(QMouseEvent *e);
-    bool isReadyToProcessUserInputedData(QMouseEvent *e);
+    bool isReadyToProcessUserInputedData(QMouseEvent *e, int totalLines);
 private:
     QList<Dot*> selectedPoints;
     QList<Line*> selectedLines;

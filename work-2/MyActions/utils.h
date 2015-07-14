@@ -30,6 +30,9 @@ public:
     static Vector3d getHorizonLine(QList<Line*> paralellLines);
     static Matrix3d calculateHomographyMatrixFromHorizonLine(Vector3d horizonLine);
     static Matrix2d getS(QList<Line*> firstOrtoghonalLines, QList<Line*> secondOrthogonalLine);
+    static MatrixXd calculateHomographyMatrixFromFiveOrtoghonalLines(QList<Line*> firstOrtoghonalLines, QList<Line*> secondOrthogonalLines,
+                         QList<Line*> thirdOrthogonalLines, QList<Line*> fourthOrthogonalLines,
+                         QList<Line*> fifthOrthogonalLines);
     static Vector3d getLineInHomogeneousCoordinates(Line *line);
     static MatrixXd getUpperTriangularCholesky(MatrixXd K);
     static Matrix3d calculateHomographyMatrixFromCholeskyDecomposition(MatrixXd K);

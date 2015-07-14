@@ -3,7 +3,7 @@
 #include "utils.h"
 #include "line.h"
 
-#define METHOD 3
+#define METHOD 4
 
 Picture::Picture(QWidget *parent)
     : QLabel(parent)
@@ -16,9 +16,9 @@ Picture::~Picture()
 
 }
 
-bool Picture::isReadyToProcessUserInputedData(QMouseEvent *e)
+bool Picture::isReadyToProcessUserInputedData(QMouseEvent *e, int totalLines)
 {
-    if (selectedLines.size() < 4)
+    if (selectedLines.size() < totalLines)
     {
         if (selectedPoints.size() < 2)
         {
@@ -63,7 +63,7 @@ void Picture::mousePressEvent(QMouseEvent *e)
     if (e->button() == Qt::LeftButton) {
          if (METHOD == 1)
          {
-              if (isReadyToProcessUserInputedData(e))
+              if (isReadyToProcessUserInputedData(e, 4))
               {
                    // Calculate H Matrix
                    MatrixXd H = Utils::calculateHomographyMatrixFromHorizonLine(Utils::getHorizonLine(selectedLines));
@@ -103,7 +103,7 @@ void Picture::mousePressEvent(QMouseEvent *e)
          }
          else if(METHOD == 3)
          {
-             if (isReadyToProcessUserInputedData(e))
+             if (isReadyToProcessUserInputedData(e, 4))
              {
                    QList<Line*> firstPair;
                    QList<Line*> secondPair;
@@ -116,6 +116,36 @@ void Picture::mousePressEvent(QMouseEvent *e)
                    Matrix3d H = Utils::calculateHomographyMatrixFromCholeskyDecomposition(K);
 
                    QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-2/MyActions/piso-afim-retas-paralelas.jpg");
+                   QImage outputImage = Utils::applyHomography(H, inputImage, selectedPoints);
+                   Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
+             }
+         }
+         else if(METHOD == 4)
+         {
+             if (isReadyToProcessUserInputedData(e, 10))
+             {
+                   QList<Line*> firstPair;
+                   QList<Line*> secondPair;
+                   QList<Line*> thirdPair;
+                   QList<Line*> fourthPair;
+                   QList<Line*> fifthPair;
+                   firstPair.append(selectedLines.at(0));
+                   firstPair.append(selectedLines.at(1));
+                   secondPair.append(selectedLines.at(2));
+                   secondPair.append(selectedLines.at(3));
+                   thirdPair.append(selectedLines.at(4));
+                   thirdPair.append(selectedLines.at(5));
+                   fourthPair.append(selectedLines.at(6));
+                   fourthPair.append(selectedLines.at(7));
+                   fifthPair.append(selectedLines.at(8));
+                   fifthPair.append(selectedLines.at(9));
+                   Matrix3d H = Utils::calculateHomographyMatrixFromFiveOrtoghonalLines(firstPair,
+                                                                                        secondPair,
+                                                                                        thirdPair,
+                                                                                        fourthPair,
+                                                                                        fifthPair);
+
+                   QImage inputImage = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-2/MyActions/piso-perspectiva.jpg");
                    QImage outputImage = Utils::applyHomography(H, inputImage, selectedPoints);
                    Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
              }

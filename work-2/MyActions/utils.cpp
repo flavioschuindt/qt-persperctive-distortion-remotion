@@ -225,14 +225,14 @@ Vector3d Utils::getLineInHomogeneousCoordinates(Line *line)
     return a.cross(b);
 }
 
-Matrix2d Utils::getS(QList<Line*> firstOrtoghonalLines, QList<Line*> secondOrthogonalLine)
+Matrix2d Utils::getS(QList<Line*> firstOrtoghonalLines, QList<Line*> secondOrthogonalLines)
 {
     Matrix2d S;
 
     Vector3d l1 = getLineInHomogeneousCoordinates(firstOrtoghonalLines.at(0));
     Vector3d m1 = getLineInHomogeneousCoordinates(firstOrtoghonalLines.at(1));
-    Vector3d l2 = getLineInHomogeneousCoordinates(secondOrthogonalLine.at(0));
-    Vector3d m2 = getLineInHomogeneousCoordinates(secondOrthogonalLine.at(1));
+    Vector3d l2 = getLineInHomogeneousCoordinates(secondOrthogonalLines.at(0));
+    Vector3d m2 = getLineInHomogeneousCoordinates(secondOrthogonalLines.at(1));
 
     // A * x = b.
     Matrix2d A;
@@ -246,6 +246,61 @@ Matrix2d Utils::getS(QList<Line*> firstOrtoghonalLines, QList<Line*> secondOrtho
     S << x(0,0), x(1,0), x(1,0), 1;
 
     return S;
+}
+
+MatrixXd Utils::calculateHomographyMatrixFromFiveOrtoghonalLines(QList<Line*> firstOrtoghonalLines, QList<Line*> secondOrthogonalLines,
+                     QList<Line*> thirdOrthogonalLines, QList<Line*> fourthOrthogonalLines,
+                     QList<Line*> fifthOrthogonalLines)
+{
+    // A * x = b.
+    MatrixXd A(5, 6);
+    MatrixXd b(5, 1);
+    MatrixXd x(5, 1);
+
+    Vector3d l1 = getLineInHomogeneousCoordinates(firstOrtoghonalLines.at(0));
+    Vector3d m1 = getLineInHomogeneousCoordinates(firstOrtoghonalLines.at(1));
+    Vector3d l2 = getLineInHomogeneousCoordinates(secondOrthogonalLines.at(0));
+    Vector3d m2 = getLineInHomogeneousCoordinates(secondOrthogonalLines.at(1));
+    Vector3d l3 = getLineInHomogeneousCoordinates(thirdOrthogonalLines.at(0));
+    Vector3d m3 = getLineInHomogeneousCoordinates(thirdOrthogonalLines.at(1));
+    Vector3d l4 = getLineInHomogeneousCoordinates(fourthOrthogonalLines.at(0));
+    Vector3d m4 = getLineInHomogeneousCoordinates(fourthOrthogonalLines.at(1));
+    Vector3d l5 = getLineInHomogeneousCoordinates(fifthOrthogonalLines.at(0));
+    Vector3d m5 = getLineInHomogeneousCoordinates(fifthOrthogonalLines.at(1));
+
+    b << -l1(1)*m1(1), -l2(1)*m2(1), -l3(1)*m3(1), -l4(1)*m4(1), -l5(1)*m5(1);
+    A << l1(0)*m1(0), (l1(0)*m1(1)+l1(1)*m1(0))/2, l1(1)*m1(1), (l1(0)*m1(2)+l1(2)*m1(0))/2, (l1(1)*m1(2)+l1(2)*m1(1))/2, l1(2)*m1(2),
+         l2(0)*m2(0), (l2(0)*m2(1)+l2(1)*m2(0))/2, l2(1)*m2(1), (l2(0)*m2(2)+l2(2)*m2(0))/2, (l2(1)*m2(2)+l2(2)*m2(1))/2, l2(2)*m2(2),
+         l3(0)*m3(0), (l3(0)*m3(1)+l3(1)*m3(0))/2, l3(1)*m3(1), (l3(0)*m3(2)+l3(2)*m3(0))/2, (l3(1)*m3(2)+l3(2)*m3(1))/2, l3(2)*m3(2),
+         l4(0)*m4(0), (l4(0)*m4(1)+l4(1)*m4(0))/2, l4(1)*m4(1), (l4(0)*m4(2)+l4(2)*m4(0))/2, (l4(1)*m4(2)+l4(2)*m4(1))/2, l4(2)*m4(2),
+         l5(0)*m5(0), (l5(0)*m5(1)+l5(1)*m5(0))/2, l5(1)*m5(1), (l5(0)*m5(2)+l5(2)*m5(0))/2, (l5(1)*m5(2)+l5(2)*m5(1))/2, l5(2)*m5(2);
+
+   x = A.colPivHouseholderQr().solve(b);
+
+   x/=x(2);
+
+   Matrix3d C;
+   C << x(0), x(1)/2, x(3)/2,
+        x(1)/2, x(2), x(4)/2,
+        x(3)/2, x(4)/2, 1;
+
+   Matrix2d kkt;
+   kkt << C(0,0), C(0,1),
+          C(1,0), C(1,1);
+
+   MatrixXd vKKt(1,2);
+   vKKt << C(2,0), C(2,1);
+
+   MatrixXd V(1,2);
+   V = vKKt * kkt.inverse();
+
+   LLT<MatrixXd> llt(kkt);
+   MatrixXd U = llt.matrixU();
+
+   MatrixXd J (3,3);
+   J << U(0,0), U(0,1),0, U(1,0), U(1,1),0, V(0), V(1), 1;
+
+   return J;
 }
 
 MatrixXd Utils::getUpperTriangularCholesky(MatrixXd KKt)
