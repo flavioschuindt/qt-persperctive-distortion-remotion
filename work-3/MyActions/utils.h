@@ -14,6 +14,13 @@
 
 #include "line.h"
 
+struct bounds{
+    double top;
+    double left;
+    double right;
+    double bottom;
+};
+
 using namespace Eigen;
 using namespace std;
 
@@ -37,6 +44,10 @@ public:
     static MatrixXd getUpperTriangularCholesky(MatrixXd K);
     static Matrix3d calculateHomographyMatrixFromCholeskyDecomposition(MatrixXd K);
     static Matrix3d dlt(vector< pair<Dot*,Dot*> > pairs);
+    static Matrix3d dltNormalized(vector< pair<Dot*,Dot*> > pairs);
+    static Matrix3d getTMatrix(vector<Dot *> points);
+    static QImage panoramic(vector<QImage> imgs, Matrix3d H);
+    static bounds getBounds(vector<QImage> imgs, Matrix3d H);
 };
 
 #endif // UTILS_H

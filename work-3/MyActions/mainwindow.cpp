@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "utils.h"
 #include <QMessageBox>
 #include <QLabel>
 #include <Qt>
@@ -39,4 +40,8 @@ void MainWindow::on_actionSave_triggered()
         pair<Dot *, Dot *> pair(points.at(i), points.at(i+1));
         pairs.push_back(pair);
     }
+
+    QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/1.png");
+    QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/2.png");
+    Matrix3d H = Utils::dlt(pairs);
 }

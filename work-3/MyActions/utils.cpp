@@ -123,7 +123,7 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage, QList<Dot*> region)
     double min_x = (*min_element(x_values.begin(), x_values.end()));
     double max_y = (*max_element(y_values.begin(), y_values.end()));
     double min_y = (*min_element(y_values.begin(), y_values.end()));
-    height_output = (width_output / ((max_x-min_x)/(max_y-min_y)))*2;
+    height_output = (width_output / ((max_x-min_x)/(max_y-min_y)));
 
     QImage outputImage(width_output, height_output, QImage::Format_ARGB32);
     QPainter painter;
@@ -140,7 +140,7 @@ QImage Utils::applyHomography(MatrixXd H, QImage inputImage, QList<Dot*> region)
     {
         for (int j=0; j<width_output; j++)
         {
-            x << min_x+j*step, min_y+i*step/2, 1;
+            x << min_x+j*step, min_y+i*step, 1;
             y = H*x;
 
             y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
@@ -352,4 +352,130 @@ Matrix3d Utils::dlt(vector< pair<Dot*,Dot*> > pairs)
             h(3), h(4), h(5),
             h(6), h(7), h(8);
     return H;
+}
+
+Matrix3d Utils::getTMatrix(vector<Dot *> points)
+{
+    double u_avg = 0;
+    double v_avg = 0;
+    int u_sum = 0;
+    int v_sum = 0;
+
+    for(std::vector<int>::size_type i = 0; i < points.size(); i++) {
+        Dot * point = points.at(i);
+        u_sum += point->x();
+        v_sum += point->y();
+    }
+
+    u_avg = u_sum / (double)points.size();
+    v_avg = v_sum / (double)points.size();
+
+
+    double sum = 0;
+    double s = 0;
+    for(std::vector<int>::size_type i = 0; i < points.size(); i++) {
+        Dot * point = points.at(i);
+        sum += sqrt(pow(((double)point->x() - u_avg), 2) + pow(((double)point->y() - v_avg), 2));
+    }
+    s = (sqrt(2) * (double)points.size()) / sum;
+
+    Matrix3d T;
+    T << s, 0, -s*u_avg,
+         0, s, -s*v_avg,
+         0, 0, 1;
+    return T;
+}
+
+Matrix3d Utils::dltNormalized(vector< pair<Dot*,Dot*> > pairs)
+{
+
+    vector<Dot *> pointsFirstImage;
+    vector<Dot *> pointsSecondImage;
+
+    for(std::vector<int>::size_type i = 0; i < pairs.size(); i++) {
+        pair<Dot*,Dot*> pair = pairs.at(i);
+        Dot* firstPoint = pair.first;
+        Dot* secondPoint = pair.second;
+        pointsFirstImage.push_back(firstPoint);
+        pointsSecondImage.push_back(secondPoint);
+    }
+
+    Matrix3d T = getTMatrix(pointsFirstImage);
+    Matrix3d T2 = getTMatrix(pointsSecondImage);
+
+    Vector3d p1, p2;
+    vector< pair<Dot*,Dot*> > normalizedPairs;
+
+    for(std::vector<int>::size_type i = 0; i < pairs.size(); i++) {
+        pair<Dot*,Dot*> pair = pairs.at(i);
+        Dot* firstPoint = pair.first;
+        Dot* secondPoint = pair.second;
+
+        p1 << firstPoint->x(), firstPoint->y(), 1;
+        p2 << secondPoint->x(), secondPoint->y(), 1;
+
+        Vector3d res = T * p1;
+        firstPoint->move(res(0), res(1));
+        res = T2 * p2;
+        secondPoint->move(res(0), res(1));
+
+        std::pair<Dot*,Dot*> normalizedPair(firstPoint, secondPoint);
+        normalizedPairs.push_back(normalizedPair);
+    }
+
+    Matrix3d Hn = dlt(normalizedPairs);
+    Matrix3d H = T.inverse().eval() * Hn * T2;
+
+    return H;
+
+}
+
+bounds Utils::getBounds(vector<QImage> imgs, Matrix3d H)
+{
+    bounds bound;
+    MatrixXd x(3,1);
+    MatrixXd y(3,1);
+    vector<double> x_values;
+    vector<double> y_values;
+
+    // Calculate output image corners
+    for (std::vector<int>::size_type i = 0; i < imgs.size(); i++)
+    {
+        QImage img = imgs.at(i);
+        x << 0, 0, 1;
+        y = H*x;
+        x_values.push_back(y(0,0)/y(2,0));
+        y_values.push_back(y(1,0)/y(2,0));
+
+        x << img.width(), 0, 1;
+        y = H*x;
+        x_values.push_back(y(0,0)/y(2,0));
+        y_values.push_back(y(1,0)/y(2,0));
+
+        x << img.width(), img.height(), 1;
+        y = H*x;
+        x_values.push_back(y(0,0)/y(2,0));
+        y_values.push_back(y(1,0)/y(2,0));
+
+        x << 0, img.height(), 1;
+        y = H*x;
+        x_values.push_back(y(0,0)/y(2,0));
+        y_values.push_back(y(1,0)/y(2,0));
+    }
+
+    bound.right = (*max_element(x_values.begin(), x_values.end()));
+    bound.left = (*min_element(x_values.begin(), x_values.end()));
+    bound.bottom = (*max_element(y_values.begin(), y_values.end()));
+    bound.top = (*min_element(y_values.begin(), y_values.end()));
+
+    return bound;
+}
+
+QImage Utils::panoramic(vector<QImage> imgs, Matrix3d H)
+{
+    bounds bound = getBounds(imgs, H);
+    int width_output = 1152;
+    int height_output = (width_output / ((bound.right-bound.left)/(bound.bottom-bound.top)));
+    QImage newImage = QImage(width_output,  height_output, QImage::Format_ARGB32);
+    return newImage;
 }
