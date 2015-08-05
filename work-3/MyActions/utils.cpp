@@ -430,18 +430,22 @@ Matrix3d Utils::dltNormalized(vector< pair<Dot*,Dot*> > pairs)
 
 }
 
-bounds Utils::getBounds(vector<QImage> imgs, Matrix3d H)
+bounds Utils::getBounds(vector< std::pair<QImage, Matrix3d> > pairs)
 {
     bounds bound;
     MatrixXd x(3,1);
     MatrixXd y(3,1);
+    Matrix3d H;
     vector<double> x_values;
     vector<double> y_values;
+    QImage img;
 
     // Calculate output image corners
-    for (std::vector<int>::size_type i = 0; i < imgs.size(); i++)
+    for (std::vector<int>::size_type i = 0; i < pairs.size(); i++)
     {
-        QImage img = imgs.at(i);
+        std::pair<QImage, Matrix3d> pair = pairs.at(i);
+        img = pair.first;
+        H = pair.second;
         x << 0, 0, 1;
         y = H*x;
         x_values.push_back(y(0,0)/y(2,0));
@@ -471,11 +475,66 @@ bounds Utils::getBounds(vector<QImage> imgs, Matrix3d H)
     return bound;
 }
 
-QImage Utils::panoramic(vector<QImage> imgs, Matrix3d H)
+QImage Utils::panoramic(vector< std::pair<QImage, Matrix3d> > pairs)
 {
-    bounds bound = getBounds(imgs, H);
+    bounds bound = getBounds(pairs);
     int width_output = 1152;
     int height_output = (width_output / ((bound.right-bound.left)/(bound.bottom-bound.top)));
+    MatrixXd x(3,1);
+    MatrixXd y(3,1);
     QImage newImage = QImage(width_output,  height_output, QImage::Format_ARGB32);
+
+    QPainter painter;
+    painter.begin(&newImage);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBackgroundMode(Qt::TransparentMode);
+    QPen pen;
+
+    double step = (bound.right-bound.left) / width_output;
+
+    for (std::vector<int>::size_type i = 0; i < pairs.size(); i++)
+    {
+        std::pair<QImage, Matrix3d> pair = pairs.at(i);
+        QImage inputImage = pair.first;
+        Matrix3d H = pair.second;
+        H = H.inverse().eval();
+        for (int i=0; i < height_output; i++)
+        {
+            for (int j=0; j<width_output; j++)
+            {
+                x << bound.left+j*step, bound.top+i*step, 1;
+                y = H*x;
+
+                y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
+
+                if (y(0,0) >= 0 && y(0,0) <= inputImage.width() - 1
+                        && y(1,0) >= 0 && y(1,0) <= inputImage.height() - 1)
+                {
+                    // Point lies inside the input Image
+
+                    // Do interpolation
+                    QColor c = interpolate(inputImage, y);
+                    //QRgb clrCurrent( inputImage.pixel( y(0,0), y(1,0) ) );
+                    pen.setColor(c);
+                    pen.setWidth(1);
+                    pen.setCapStyle(Qt::RoundCap);
+                    painter.setPen(pen);
+                    painter.drawPoint(j, i);
+
+                }
+                /*else
+                {
+                    // Point lies outside the input Image
+                    QColor clrCurrent(0,0,0);
+                    pen.setColor(clrCurrent);
+                    pen.setWidth(1);
+                    pen.setCapStyle(Qt::RoundCap);
+                    painter.setPen(pen);
+                    painter.drawPoint(j, i);
+                }*/
+            }
+        }
+    }
+    painter.end();
     return newImage;
 }

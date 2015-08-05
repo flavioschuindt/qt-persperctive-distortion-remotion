@@ -46,8 +46,8 @@ public:
     static Matrix3d dlt(vector< pair<Dot*,Dot*> > pairs);
     static Matrix3d dltNormalized(vector< pair<Dot*,Dot*> > pairs);
     static Matrix3d getTMatrix(vector<Dot *> points);
-    static QImage panoramic(vector<QImage> imgs, Matrix3d H);
-    static bounds getBounds(vector<QImage> imgs, Matrix3d H);
+    static QImage panoramic(vector< std::pair<QImage, Matrix3d> > pairs);
+    static bounds getBounds(vector< std::pair<QImage, Matrix3d> > imgs);
 };
 
 #endif // UTILS_H

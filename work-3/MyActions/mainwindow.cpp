@@ -44,4 +44,12 @@ void MainWindow::on_actionSave_triggered()
     QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/1.png");
     QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/2.png");
     Matrix3d H = Utils::dlt(pairs);
+
+    vector< std::pair<QImage, Matrix3d> > inputPairs;
+    inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
+    inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage1, Matrix<double, 3, 3>::Identity()));
+
+    QImage outputImage = Utils::panoramic(inputPairs);
+    Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
+
 }
