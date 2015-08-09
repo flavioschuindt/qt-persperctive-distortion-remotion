@@ -23,7 +23,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_actionOpen_triggered()
 {
     QImage imageObject;
-    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/1.png");
+    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
     ui->pictureContainer->setPixmap(QPixmap::fromImage(imageObject));
     QSize size = ui->pictureContainer->pixmap()->size();
     ui->pictureContainer->resize(size.width(), size.height());
@@ -41,13 +41,14 @@ void MainWindow::on_actionSave_triggered()
         pairs.push_back(pair);
     }
 
-    QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/1.png");
-    QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/2.png");
-    Matrix3d H = Utils::dlt(pairs);
+    QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
+    QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg");
+    Matrix3d H = Utils::dltNormalized(pairs);
 
     vector< std::pair<QImage, Matrix3d> > inputPairs;
-    inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
+    cout << H << endl;
     inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage1, Matrix<double, 3, 3>::Identity()));
+    inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
 
     QImage outputImage = Utils::panoramic(inputPairs);
     Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
