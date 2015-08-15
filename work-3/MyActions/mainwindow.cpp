@@ -23,7 +23,7 @@ MainWindow::~MainWindow()
 void MainWindow::on_actionOpen_triggered()
 {
     QImage imageObject;
-    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
+    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg");
     ui->pictureContainer->setPixmap(QPixmap::fromImage(imageObject));
     QSize size = ui->pictureContainer->pixmap()->size();
     ui->pictureContainer->resize(size.width(), size.height());
@@ -33,17 +33,33 @@ void MainWindow::on_actionOpen_triggered()
 void MainWindow::on_actionSave_triggered()
 {
     vector< pair<Dot*, Dot*> > pairs;
-
-    QList<Dot *> points = ui->pictureContainer->selectedPoints;
-    for( int i=0; i < points.count(); i+=2 )
+    Matrix3d H;
+    if (METHOD == 0)
     {
-        pair<Dot *, Dot *> pair(points.at(i), points.at(i+1));
-        pairs.push_back(pair);
+        QList<Dot *> points = ui->pictureContainer->selectedPoints;
+        for( int i=0; i < points.count(); i+=2 )
+        {
+            pair<Dot *, Dot *> pair(points.at(i), points.at(i+1));
+            pairs.push_back(pair);
+        }
+    }
+    else if (METHOD == 1)
+    {
+        /*vector< pair<Dot*, Dot*> > teste;
+        teste = Utils::surf("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg",
+                    "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
+        pairs.push_back(teste.at(10));
+        pairs.push_back(teste.at(66));
+        pairs.push_back(teste.at(43));
+        pairs.push_back(teste.at(70));*/
+        pairs = Utils::surf("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg",
+                            "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
+        H = Utils::ransac(pairs, 4, 200);
     }
 
-    QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
-    QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg");
-    Matrix3d H = Utils::dltNormalized(pairs);
+    QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg");
+    QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
+    //Matrix3d H = Utils::dltNormalized(pairs);
 
     vector< std::pair<QImage, Matrix3d> > inputPairs;
     cout << H << endl;

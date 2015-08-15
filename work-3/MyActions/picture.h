@@ -9,8 +9,11 @@
 #include <QMessageBox>
 #include <QPicture>
 
+#define METHOD 1
+
 using namespace Eigen;
 using namespace std;
+
 
 class Picture: public QLabel
 {

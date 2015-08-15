@@ -35,3 +35,11 @@ RESOURCES += \
     myres2.qrc
 
 INCLUDEPATH += /usr/include/eigen3
+INCLUDEPATH += /usr/local/include/opencv2
+
+LIBS += -lopencv_core
+LIBS += -lopencv_highgui
+LIBS += -lopencv_imgproc
+LIBS += -lopencv_features2d
+LIBS += -lopencv_nonfree
+LIBS += -lopencv_flann

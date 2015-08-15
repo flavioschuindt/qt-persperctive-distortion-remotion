@@ -2,6 +2,8 @@
 #define UTILS_H
 
 #include <vector>
+#include <stdlib.h>
+#include <time.h>
 #include <Eigen/Dense>
 #include <QImage>
 #include <QString>
@@ -11,6 +13,10 @@
 #include <QImageWriter>
 #include <iostream>
 #include <math.h>
+#include "opencv2/core/core.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/nonfree/features2d.hpp"
 
 #include "line.h"
 
@@ -23,6 +29,7 @@ struct bounds{
 
 using namespace Eigen;
 using namespace std;
+using namespace cv;
 
 
 class Utils
@@ -48,6 +55,9 @@ public:
     static Matrix3d getTMatrix(vector<Dot *> points);
     static QImage panoramic(vector< std::pair<QImage, Matrix3d> > pairs);
     static bounds getBounds(vector< std::pair<QImage, Matrix3d> > imgs);
+    static vector< pair<Dot*,Dot*> > surf(const char * img1, const char * img2);
+    static Matrix3d ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n);
+    static double squaredEuclideanDistance(MatrixXd a, MatrixXd b);
 };
 
 #endif // UTILS_H

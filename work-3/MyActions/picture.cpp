@@ -17,12 +17,15 @@ Picture::~Picture()
 
 void Picture::mousePressEvent(QMouseEvent *e)
 {
-    if (e->button() == Qt::LeftButton) {
-        Dot* dot = new Dot(this);
-        dot->show();
-        update();
-        dot->move(e->x(), e->y());
-        selectedPoints.push_back(dot);
+    if (METHOD == 0) // Method to click on points on both images
+    {
+        if (e->button() == Qt::LeftButton) {
+            Dot* dot = new Dot(this);
+            dot->show();
+            update();
+            dot->move(e->x(), e->y());
+            selectedPoints.push_back(dot);
+        }
     }
 
 }
