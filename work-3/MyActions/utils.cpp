@@ -636,10 +636,10 @@ Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorresponden
         int inliers = 0;
         // get random correspondences
         randomPairs.clear();
-        for (int i = 0; i < numberOfCorrespondences; i++)
+        for (int j = 0; j < numberOfCorrespondences; j++)
         {
             int correspondence = rand() % pairs.size();
-                randomPairs.push_back(pairs.at(correspondence));
+            randomPairs.push_back(pairs.at(correspondence));
         }
 
         // do DLT with these random pairs
@@ -649,11 +649,11 @@ Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorresponden
         MatrixXd y(3,1);
         MatrixXd x(3,1);
         MatrixXd z(3,1);
-        for (int i = 0; i < (int)pairs.size(); i++)
+        for (int k = 0; k < (int)pairs.size(); k++)
         {
             Dot *pointInFirstImage;
             Dot *pointInSecondImage;
-            pair <Dot*, Dot*> pair = pairs.at(i);
+            pair <Dot*, Dot*> pair = pairs.at(k);
             pointInFirstImage = pair.first;
             pointInSecondImage = pair.second;
             x << pointInFirstImage->x(), pointInFirstImage->y(),1;
