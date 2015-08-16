@@ -59,7 +59,7 @@ void MainWindow::on_actionSave_triggered()
 
     QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg");
     QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
-    //Matrix3d H = Utils::dltNormalized(pairs);
+    //H = Utils::dltNormalized(pairs);
 
     vector< std::pair<QImage, Matrix3d> > inputPairs;
     cout << H << endl;

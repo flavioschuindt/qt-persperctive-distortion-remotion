@@ -627,15 +627,15 @@ Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorresponden
 {
     srand (time(NULL));
     int maxInliers = 0;
-    Matrix3d H1;
     vector< pair<Dot*,Dot*> > bestInliers;
     vector< pair<Dot*,Dot*> > bestInliersInCurrentIteration;
+    vector< pair<Dot*,Dot*> > randomPairs;
     for (int i = 0; i < n; i++)
     {
         bestInliersInCurrentIteration.clear();
         int inliers = 0;
         // get random correspondences
-        vector< pair<Dot*,Dot*> > randomPairs;
+        randomPairs.clear();
         for (int i = 0; i < numberOfCorrespondences; i++)
         {
             int correspondence = rand() % pairs.size();
@@ -643,7 +643,7 @@ Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorresponden
         }
 
         // do DLT with these random pairs
-        H1 = dltNormalized(randomPairs);
+        Matrix3d H1 = dltNormalized(randomPairs);
 
         // Apply H in all points in the first image and calculate error between z and y
         MatrixXd y(3,1);
@@ -681,8 +681,9 @@ Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorresponden
 
 double Utils::squaredEuclideanDistance(MatrixXd a, MatrixXd b)
 {
+   // a e b are column vectors
    double distance = 0;
-   for (int i = 0; i < a.cols(); i++)
+   for (int i = 0; i < a.rows(); i++)
         distance += pow( (a(i,0) - b(i,0)), 2);
    return distance;
 }

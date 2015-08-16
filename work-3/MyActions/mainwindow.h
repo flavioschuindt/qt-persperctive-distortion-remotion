@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QApplication>
 
+#define METHOD 1
+
 namespace Ui {
 class MainWindow;
 }
