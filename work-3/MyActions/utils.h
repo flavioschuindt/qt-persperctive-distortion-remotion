@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <vector>
+#include <sstream>
 #include <stdlib.h>
 #include <time.h>
 #include <Eigen/Dense>
@@ -56,8 +57,11 @@ public:
     static QImage panoramic(vector< std::pair<QImage, Matrix3d> > pairs);
     static bounds getBounds(vector< std::pair<QImage, Matrix3d> > imgs);
     static vector< pair<Dot*,Dot*> > surf(const char * img1, const char * img2);
+    static vector< pair<Dot*,Dot*> > sift(const char *img1Path, const char * img2Path);
     static Matrix3d ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n);
     static double squaredEuclideanDistance(MatrixXd a, MatrixXd b);
+    static string intToString(int a);
+    static vector< pair<Dot*,Dot*> > getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences);
 };
 
 #endif // UTILS_H

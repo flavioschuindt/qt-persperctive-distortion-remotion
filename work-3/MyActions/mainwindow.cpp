@@ -36,37 +36,86 @@ void MainWindow::on_actionSave_triggered()
     Matrix3d H;
     if (METHOD == 0)
     {
+        string img1Path;
+        string img2Path;
+        string outputImgPath;
+        img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg";
+        img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite3.jpg";
+        outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2-3.jpg";
+
         QList<Dot *> points = ui->pictureContainer->selectedPoints;
         for( int i=0; i < points.count(); i+=2 )
         {
             pair<Dot *, Dot *> pair(points.at(i), points.at(i+1));
             pairs.push_back(pair);
         }
+
+        H = Utils::dltNormalized(pairs);
+        QImage inputImage1 = QImage(img1Path.c_str());
+        QImage inputImage2 = QImage(img2Path.c_str());
+
+        vector< std::pair<QImage, Matrix3d> > inputPairs;
+        cout << H << endl;
+        inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage1, Matrix<double, 3, 3>::Identity()));
+        inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
+
+        QImage outputImage = Utils::panoramic(inputPairs);
+        Utils::saveImage(outputImage, outputImgPath);
     }
     else if (METHOD == 1)
     {
-        /*vector< pair<Dot*, Dot*> > teste;
-        teste = Utils::surf("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg",
-                    "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
-        pairs.push_back(teste.at(10));
-        pairs.push_back(teste.at(66));
-        pairs.push_back(teste.at(43));
-        pairs.push_back(teste.at(70));*/
-        pairs = Utils::surf("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg",
-                            "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
-        H = Utils::ransac(pairs, 4, 200);
+        for (int i = 1; i <= 7; i++)
+        {
+            string img1Path;
+            string img2Path;
+            string outputImgPath;
+            /*if (i == 1)
+            {
+                img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg";
+                img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg";
+                outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1-2.jpg";
+            }
+            else
+            {
+                string rootPath("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite");
+                img1Path = rootPath+Utils::intToString(i-1)+"-"+Utils::intToString(i)+".jpg";
+                img2Path = rootPath+Utils::intToString(i+1)+".jpg";
+                outputImgPath = rootPath+Utils::intToString(i)+"-"+Utils::intToString(i+1)+".jpg";
+            }*/
+            img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite3.jpg";
+            img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite4.jpg";
+            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemitec-d.jpg";
+
+            cout << "*************** INPUT ***************" << endl;
+            cout << img1Path << endl;
+            pairs = Utils::sift(img1Path.c_str(),
+                                img2Path.c_str());
+              cout << img2Path << endl;
+            cout << "*************** INPUT ***************" << endl;
+
+            cout << "*************** NUMERO DE PARES DO MATCHER ***************" << endl;
+            cout << (int)pairs.size() << endl;
+            cout << "*************** NUMERO DE PARES DO MATCHER ***************" << endl;
+
+            /*vector< pair<Dot*,Dot*> > bestInliers = Utils::getBestPairs(pairs, 200, 4);
+            cout << "*************** QUANTIDADE DOS MELHORES INLIERS ***************" << endl;
+            cout << (int)bestInliers.size() << endl;
+            cout << "*************** QUANTIDADE DOS MELHORES INLIERS ***************" << endl;*/
+
+            H = Utils::dltNormalized(pairs);
+            //H = Utils::ransac(pairs, 4, 200);
+            QImage inputImage1 = QImage(img1Path.c_str());
+            QImage inputImage2 = QImage(img2Path.c_str());
+
+            vector< std::pair<QImage, Matrix3d> > inputPairs;
+            cout << H << endl;
+            inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage1, Matrix<double, 3, 3>::Identity()));
+            inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
+
+            QImage outputImage = Utils::panoramic(inputPairs);
+            Utils::saveImage(outputImage, outputImgPath);
+            break;
+        }
+
     }
-
-    QImage inputImage1 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg");
-    QImage inputImage2 = QImage("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
-    //H = Utils::dltNormalized(pairs);
-
-    vector< std::pair<QImage, Matrix3d> > inputPairs;
-    cout << H << endl;
-    inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage1, Matrix<double, 3, 3>::Identity()));
-    inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
-
-    QImage outputImage = Utils::panoramic(inputPairs);
-    Utils::saveImage(outputImage, "/home/fschuindt/teste.jpg");
-
 }

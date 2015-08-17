@@ -540,6 +540,88 @@ QImage Utils::panoramic(vector< std::pair<QImage, Matrix3d> > pairs)
     return newImage;
 }
 
+vector< pair<Dot*,Dot*> > Utils::sift(const char *img1Path, const char * img2Path)
+{
+    vector< pair<Dot*, Dot*> > goodPairs;
+
+    Mat img_1 = imread( img1Path, CV_LOAD_IMAGE_GRAYSCALE );
+    Mat img_2 = imread( img2Path, CV_LOAD_IMAGE_GRAYSCALE );
+
+    if( !img_1.data || !img_2.data )
+        return goodPairs;
+
+      //-- Step 1: Detect the keypoints using SIFT Detector
+
+      SiftFeatureDetector detector;
+
+      std::vector<KeyPoint> keypoints_1, keypoints_2;
+
+      detector.detect( img_1, keypoints_1 );
+      detector.detect( img_2, keypoints_2 );
+
+      //-- Step 2: Calculate descriptors (feature vectors)
+      SiftDescriptorExtractor extractor;
+
+      Mat descriptors_1, descriptors_2;
+
+      extractor.compute( img_1, keypoints_1, descriptors_1 );
+      extractor.compute( img_2, keypoints_2, descriptors_2 );
+
+      //-- Step 3: Matching descriptor vectors using FLANN matcher
+      FlannBasedMatcher matcher;
+      std::vector< DMatch > matches;
+      matcher.match( descriptors_1, descriptors_2, matches );
+
+      double max_dist = 0; double min_dist = 100;
+
+      //-- Quick calculation of max and min distances between keypoints
+      for( int i = 0; i < descriptors_1.rows; i++ )
+      {
+        double dist = matches[i].distance;
+        if( dist < min_dist ) min_dist = dist;
+        if( dist > max_dist ) max_dist = dist;
+      }
+
+      //-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
+      //-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
+      //-- small)
+      //-- PS.- radiusMatch can also be used here.
+      std::vector< DMatch > good_matches;
+
+      for( int i = 0; i < descriptors_1.rows; i++ )
+      {
+          if( matches[i].distance <= max(2*min_dist, 0.02) )
+            good_matches.push_back( matches[i]);
+      }
+
+      //-- Draw only "good" matches
+      /*Mat img_matches;
+      drawMatches( img_1, keypoints_1, img_2, keypoints_2,
+                   good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
+                   vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+
+      //-- Show detected matches
+      imshow( "Good Matches", img_matches );*/
+
+      for( int i = 0; i < (int)good_matches.size(); i++ )
+      {
+          //printf( "-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx );
+          Point2i point1 = keypoints_1[good_matches[i].queryIdx].pt;
+          Point2i point2 = keypoints_2[good_matches[i].trainIdx].pt;
+          Dot* dot1 = new Dot();
+          dot1->move(point1.x, point1.y);
+          Dot* dot2 = new Dot();
+          dot2->move(point2.x, point2.y);
+
+          pair<Dot *, Dot *> pair(dot1, dot2);
+          goodPairs.push_back(pair);
+      }
+
+      //waitKey(0);
+
+      return goodPairs;
+}
+
 vector< pair<Dot*,Dot*> > Utils::surf(const char *img1Path, const char * img2Path)
 {
     vector< pair<Dot*, Dot*> > goodPairs;
@@ -551,7 +633,7 @@ vector< pair<Dot*,Dot*> > Utils::surf(const char *img1Path, const char * img2Pat
         return goodPairs;
 
       //-- Step 1: Detect the keypoints using SURF Detector
-      int minHessian = 400;
+      int minHessian = 5100;
 
       SurfFeatureDetector detector( minHessian );
 
@@ -623,7 +705,7 @@ vector< pair<Dot*,Dot*> > Utils::surf(const char *img1Path, const char * img2Pat
       return goodPairs;
 }
 
-Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n)
+vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences)
 {
     srand (time(NULL));
     int maxInliers = 0;
@@ -673,7 +755,15 @@ Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorresponden
         }
 
     }
+    return bestInliers;
+}
 
+Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n)
+{
+    vector< pair<Dot*,Dot*> > bestInliers = getBestPairs(pairs, n, numberOfCorrespondences);
+    cout << "=========" << endl;
+    cout << (int)pairs.size() << endl;
+    cout << (int)bestInliers.size() << endl;
     Matrix3d H = dltNormalized(bestInliers);
     return H;
 
@@ -686,4 +776,13 @@ double Utils::squaredEuclideanDistance(MatrixXd a, MatrixXd b)
    for (int i = 0; i < a.rows(); i++)
         distance += pow( (a(i,0) - b(i,0)), 2);
    return distance;
+}
+
+string Utils::intToString(int a)
+{
+    std::string s;
+    std::stringstream out;
+    out << a;
+    s = out.str();
+    return s;
 }

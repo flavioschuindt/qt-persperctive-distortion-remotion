@@ -20,7 +20,7 @@ AuxiliarWindow::~AuxiliarWindow()
 void AuxiliarWindow::on_actionOpen_triggered()
 {
     QImage imageObject;
-    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg");
+    imageObject.load("/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite3.jpg");
     ui->pictureContainer2->setPixmap(QPixmap::fromImage(imageObject));
     QSize size = ui->pictureContainer2->pixmap()->size();
     ui->pictureContainer2->resize(size.width(), size.height());
