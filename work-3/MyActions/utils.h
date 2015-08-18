@@ -62,6 +62,7 @@ public:
     static double squaredEuclideanDistance(MatrixXd a, MatrixXd b);
     static string intToString(int a);
     static vector< pair<Dot*,Dot*> > getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences);
+    static Matrix3d getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences);
 };
 
 #endif // UTILS_H

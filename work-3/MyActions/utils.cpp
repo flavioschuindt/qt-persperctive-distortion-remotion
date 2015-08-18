@@ -338,8 +338,10 @@ Matrix3d Utils::dlt(vector< pair<Dot*,Dot*> > pairs)
 
     for(std::vector<int>::size_type i = 0; i < pairs.size(); i++) {
         pair<Dot*,Dot*> pair = pairs.at(i);
-        Dot* firstPoint = pair.first;
-        Dot* secondPoint = pair.second;
+        Dot* firstPoint = new Dot();
+        firstPoint->move(pair.first->x(), pair.first->y());
+        Dot* secondPoint = new Dot();
+        secondPoint->move(pair.second->x(), pair.second->y());
 
         A.row(i * 2) << 0, 0, 0, -firstPoint->x(), -firstPoint->y(), -1, secondPoint->y()*firstPoint->x(), secondPoint->y()*firstPoint->y(), secondPoint->y();
         A.row(i * 2 + 1) << firstPoint->x(), firstPoint->y(), 1, 0, 0, 0, -secondPoint->x()*firstPoint->x(), -secondPoint->x()*firstPoint->y(), -secondPoint->x();
@@ -395,8 +397,10 @@ Matrix3d Utils::dltNormalized(vector< pair<Dot*,Dot*> > pairs)
 
     for(std::vector<int>::size_type i = 0; i < pairs.size(); i++) {
         pair<Dot*,Dot*> pair = pairs.at(i);
-        Dot* firstPoint = pair.first;
-        Dot* secondPoint = pair.second;
+        Dot* firstPoint = new Dot();
+        firstPoint->move(pair.first->x(), pair.first->y());
+        Dot* secondPoint = new Dot();
+        secondPoint->move(pair.second->x(), pair.second->y());
         pointsFirstImage.push_back(firstPoint);
         pointsSecondImage.push_back(secondPoint);
     }
@@ -409,8 +413,10 @@ Matrix3d Utils::dltNormalized(vector< pair<Dot*,Dot*> > pairs)
 
     for(std::vector<int>::size_type i = 0; i < pairs.size(); i++) {
         pair<Dot*,Dot*> pair = pairs.at(i);
-        Dot* firstPoint = pair.first;
-        Dot* secondPoint = pair.second;
+        Dot* firstPoint = new Dot();
+        firstPoint->move(pair.first->x(), pair.first->y());
+        Dot* secondPoint = new Dot();
+        secondPoint->move(pair.second->x(), pair.second->y());
 
         p1 << firstPoint->x(), firstPoint->y(), 1;
         p2 << secondPoint->x(), secondPoint->y(), 1;
@@ -721,7 +727,16 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
         for (int j = 0; j < numberOfCorrespondences; j++)
         {
             int correspondence = rand() % pairs.size();
-            randomPairs.push_back(pairs.at(correspondence));
+
+            pair <Dot*, Dot*> pair = pairs.at(correspondence);
+            Dot* pointInFirstImage = new Dot();
+            Dot* pointInSecondImage = new Dot();
+            pointInFirstImage->move(pair.first->x(), pair.first->y());
+            pointInSecondImage->move(pair.second->x(), pair.second->y());
+
+            std::pair<Dot *, Dot *> randomPair(pointInFirstImage, pointInSecondImage);
+            randomPairs.push_back(randomPair);
+
         }
 
         // do DLT with these random pairs
@@ -733,19 +748,20 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
         MatrixXd z(3,1);
         for (int k = 0; k < (int)pairs.size(); k++)
         {
-            Dot *pointInFirstImage;
-            Dot *pointInSecondImage;
+            Dot *pointInFirstImage = new Dot();
+            Dot *pointInSecondImage = new Dot();
             pair <Dot*, Dot*> pair = pairs.at(k);
-            pointInFirstImage = pair.first;
-            pointInSecondImage = pair.second;
+            pointInFirstImage->move(pair.first->x(), pair.first->y());
+            pointInSecondImage->move(pair.second->x(), pair.second->y());
             x << pointInFirstImage->x(), pointInFirstImage->y(),1;
             y = H1*x;
             y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
             z << pointInSecondImage->x(), pointInSecondImage->y(),1;
-            if (squaredEuclideanDistance(z, y) <= 25)
+            if (squaredEuclideanDistance(z, y) <= 1000)
             {
                 inliers++;
-                bestInliersInCurrentIteration.push_back(pair);
+                std::pair <Dot*, Dot*> inlier(pointInFirstImage, pointInSecondImage);
+                bestInliersInCurrentIteration.push_back(inlier);
             }
         }
         if (inliers > maxInliers)
@@ -758,12 +774,84 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
     return bestInliers;
 }
 
+Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences)
+{
+    srand (time(NULL));
+    int maxInliers = 0;
+    vector< pair<Dot*,Dot*> > bestInliers;
+    vector< pair<Dot*,Dot*> > bestInliersInCurrentIteration;
+    vector< pair<Dot*,Dot*> > randomPairs;
+    Matrix3d bestH1;
+    //cout << "blaaa" << endl;
+    //cout << bestH1 << endl;
+    for (int i = 0; i < n; i++)
+    {
+        bestInliersInCurrentIteration.clear();
+        int inliers = 0;
+        // get random correspondences
+        randomPairs.clear();
+        for (int j = 0; j < numberOfCorrespondences; j++)
+        {
+            int correspondence = rand() % pairs.size();
+
+            pair <Dot*, Dot*> pair = pairs.at(correspondence);
+            Dot* pointInFirstImage = new Dot();
+            Dot* pointInSecondImage = new Dot();
+            pointInFirstImage->move(pair.first->x(), pair.first->y());
+            pointInSecondImage->move(pair.second->x(), pair.second->y());
+
+            std::pair<Dot *, Dot *> randomPair(pointInFirstImage, pointInSecondImage);
+            randomPairs.push_back(randomPair);
+        }
+
+        // do DLT with these random pairs
+        Matrix3d H1 = dltNormalized(randomPairs);
+
+        // Apply H in all points in the first image and calculate error between z and y
+        MatrixXd y(3,1);
+        MatrixXd x(3,1);
+        MatrixXd z(3,1);
+
+        for (int k = 0; k < (int)pairs.size(); k++)
+        {
+            Dot *pointInFirstImage = new Dot();
+            Dot *pointInSecondImage = new Dot();
+            pair <Dot*, Dot*> pair = pairs.at(k);
+            pointInFirstImage->move(pair.first->x(), pair.first->y());
+            pointInSecondImage->move(pair.second->x(), pair.second->y());
+            x << pointInFirstImage->x(), pointInFirstImage->y(),1;
+            y = H1*x;
+            y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
+            z << pointInSecondImage->x(), pointInSecondImage->y(),1;
+            if (squaredEuclideanDistance(z, y) <= 60000)
+            {
+                inliers++;
+                std::pair <Dot*, Dot*> inlier(pointInFirstImage, pointInSecondImage);
+                bestInliersInCurrentIteration.push_back(inlier);
+            }
+        }
+        if (inliers > maxInliers)
+        {
+            //cout << "tem que passar auqi para mudar" << endl;
+            maxInliers = inliers;
+            bestInliers = bestInliersInCurrentIteration;
+            bestH1 = H1;
+            //cout << "==== Melhor H1 =====" << endl;
+            //cout << H1 << endl;
+            //cout << "==== Melhor H1 ====" << endl;
+        }
+
+    }
+    //cout << bestH1 << endl;
+    return bestH1;
+}
+
 Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n)
 {
     vector< pair<Dot*,Dot*> > bestInliers = getBestPairs(pairs, n, numberOfCorrespondences);
-    cout << "=========" << endl;
-    cout << (int)pairs.size() << endl;
-    cout << (int)bestInliers.size() << endl;
+    //cout << "=========" << endl;
+    //cout << (int)pairs.size() << endl;
+    //cout << (int)bestInliers.size() << endl;
     Matrix3d H = dltNormalized(bestInliers);
     return H;
 

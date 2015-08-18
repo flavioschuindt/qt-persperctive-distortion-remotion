@@ -82,33 +82,53 @@ void MainWindow::on_actionSave_triggered()
                 img2Path = rootPath+Utils::intToString(i+1)+".jpg";
                 outputImgPath = rootPath+Utils::intToString(i)+"-"+Utils::intToString(i+1)+".jpg";
             }*/
-            img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite3.jpg";
-            img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite4.jpg";
-            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemitec-d.jpg";
+            img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/pan_1.png";
+            img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/pan_0.png";
+            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/pan_01.png";
 
             cout << "*************** INPUT ***************" << endl;
             cout << img1Path << endl;
             pairs = Utils::sift(img1Path.c_str(),
                                 img2Path.c_str());
-              cout << img2Path << endl;
+            cout << img2Path << endl;
             cout << "*************** INPUT ***************" << endl;
+            cout << endl;
 
             cout << "*************** NUMERO DE PARES DO MATCHER ***************" << endl;
             cout << (int)pairs.size() << endl;
             cout << "*************** NUMERO DE PARES DO MATCHER ***************" << endl;
+            cout << endl;
+
 
             /*vector< pair<Dot*,Dot*> > bestInliers = Utils::getBestPairs(pairs, 200, 4);
             cout << "*************** QUANTIDADE DOS MELHORES INLIERS ***************" << endl;
             cout << (int)bestInliers.size() << endl;
-            cout << "*************** QUANTIDADE DOS MELHORES INLIERS ***************" << endl;*/
+            cout << "*************** QUANTIDADE DOS MELHORES INLIERS ***************" << endl;
+            cout << endl;*/
 
-            H = Utils::dltNormalized(pairs);
-            //H = Utils::ransac(pairs, 4, 200);
+            /*cout << "H somente normalizada" << endl;
+            H = Utils::dltNormalized(bestInliers);
+            cout << H << endl;
+            cout << "H somente normalizada" << endl;
+            cout << endl;*/
+
+            /*cout << "H melhor H1" << endl;
+            H = Utils::getBestH1(pairs, 200, 4);
+            cout << H << endl;
+            cout << "H melhor H1" << endl;
+            cout << endl;*/
+
+            cout << "H ransac" << endl;
+            H = Utils::ransac(pairs, 4, 200);
+            cout << H << endl;
+            cout << "H ransac" << endl;
+            cout << endl;
+
             QImage inputImage1 = QImage(img1Path.c_str());
             QImage inputImage2 = QImage(img2Path.c_str());
 
             vector< std::pair<QImage, Matrix3d> > inputPairs;
-            cout << H << endl;
+            //cout << H << endl;
             inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage1, Matrix<double, 3, 3>::Identity()));
             inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
 
