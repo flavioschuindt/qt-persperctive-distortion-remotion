@@ -82,9 +82,9 @@ void MainWindow::on_actionSave_triggered()
                 img2Path = rootPath+Utils::intToString(i+1)+".jpg";
                 outputImgPath = rootPath+Utils::intToString(i)+"-"+Utils::intToString(i+1)+".jpg";
             }*/
-            img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/pan_1.png";
-            img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/pan_0.png";
-            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/pan_01.png";
+            img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg";
+            img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg";
+            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1-2-teste.jpg";
 
             cout << "*************** INPUT ***************" << endl;
             cout << img1Path << endl;
@@ -119,7 +119,7 @@ void MainWindow::on_actionSave_triggered()
             cout << endl;*/
 
             cout << "H ransac" << endl;
-            H = Utils::ransac(pairs, 4, 200);
+            H = Utils::ransac(pairs, 4, 200, 5);
             cout << H << endl;
             cout << "H ransac" << endl;
             cout << endl;

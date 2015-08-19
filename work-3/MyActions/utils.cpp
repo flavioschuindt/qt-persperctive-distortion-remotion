@@ -711,15 +711,24 @@ vector< pair<Dot*,Dot*> > Utils::surf(const char *img1Path, const char * img2Pat
       return goodPairs;
 }
 
-vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences)
+vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold)
 {
     srand (time(NULL));
     int maxInliers = 0;
     vector< pair<Dot*,Dot*> > bestInliers;
     vector< pair<Dot*,Dot*> > bestInliersInCurrentIteration;
     vector< pair<Dot*,Dot*> > randomPairs;
-    for (int i = 0; i < n; i++)
-    {
+    //double N = 588;
+    //double Ni = 0;
+    //double w = 1; // Inliers likelihood
+    //double e = 0; // Outliers likelihood
+    //double p = 0.99;
+    //bool adaptativeSearch = true;
+    //int ransacCounter = 0;
+
+    //while(ransacCounter < N){
+    for (int i = 0; i < n; i++){
+
         bestInliersInCurrentIteration.clear();
         int inliers = 0;
         // get random correspondences
@@ -741,6 +750,20 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
 
         // do DLT with these random pairs
         Matrix3d H1 = dltNormalized(randomPairs);
+        /*vector<Vector3i> a;
+        vector<Vector3d> b;
+        Vector3i first;
+        Vector3d second;
+        for (int s = 0; s < randomPairs.size(); s++)
+        {
+            pair <Dot*, Dot*> p = pairs.at(s);
+            first << p.first->x(), p.first->y(), 1;
+            second << p.second->x(), p.second->y(), 1;
+            a.push_back(first);
+            b.push_back(second);
+        }
+        Matrix3d H1 = calculateHomographyMatrix(a, b);*/
+
 
         // Apply H in all points in the first image and calculate error between z and y
         MatrixXd y(3,1);
@@ -757,7 +780,9 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
             y = H1*x;
             y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
             z << pointInSecondImage->x(), pointInSecondImage->y(),1;
-            if (squaredEuclideanDistance(z, y) <= 1000)
+            double distance = squaredEuclideanDistance(z, y); //(squaredEuclideanDistance(x, H1.inverse().eval()*z) + squaredEuclideanDistance(z, y));
+            //cout << distance << endl;
+            if ( distance < threshold)
             {
                 inliers++;
                 std::pair <Dot*, Dot*> inlier(pointInFirstImage, pointInSecondImage);
@@ -770,11 +795,28 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
             bestInliers = bestInliersInCurrentIteration;
         }
 
+        /*if(adaptativeSearch){
+            e = 1 - ((double)inliers/pairs.size());
+            if(e < w){
+                w = e;
+                Ni = log(1-p)/log(1 - pow(1 -w,4));
+                if(Ni < N){
+                     adaptativeSearch = false;
+                }else{
+                    N = Ni;
+                }
+            }
+        }
+
+        ransacCounter++;
+        if(ransacCounter >= 10000)
+            break;*/
+
     }
     return bestInliers;
 }
 
-Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences)
+Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold)
 {
     srand (time(NULL));
     int maxInliers = 0;
@@ -823,7 +865,7 @@ Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCo
             y = H1*x;
             y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
             z << pointInSecondImage->x(), pointInSecondImage->y(),1;
-            if (squaredEuclideanDistance(z, y) <= 60000)
+            if (squaredEuclideanDistance(z, y) <= threshold)
             {
                 inliers++;
                 std::pair <Dot*, Dot*> inlier(pointInFirstImage, pointInSecondImage);
@@ -846,12 +888,12 @@ Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCo
     return bestH1;
 }
 
-Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n)
+Matrix3d Utils::ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n, double threshold)
 {
-    vector< pair<Dot*,Dot*> > bestInliers = getBestPairs(pairs, n, numberOfCorrespondences);
-    //cout << "=========" << endl;
-    //cout << (int)pairs.size() << endl;
-    //cout << (int)bestInliers.size() << endl;
+    vector< pair<Dot*,Dot*> > bestInliers = getBestPairs(pairs, n, numberOfCorrespondences, threshold);
+    cout << "=========" << endl;
+    cout << (int)pairs.size() << endl;
+    cout << (int)bestInliers.size() << endl;
     Matrix3d H = dltNormalized(bestInliers);
     return H;
 

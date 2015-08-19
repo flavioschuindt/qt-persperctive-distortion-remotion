@@ -58,11 +58,11 @@ public:
     static bounds getBounds(vector< std::pair<QImage, Matrix3d> > imgs);
     static vector< pair<Dot*,Dot*> > surf(const char * img1, const char * img2);
     static vector< pair<Dot*,Dot*> > sift(const char *img1Path, const char * img2Path);
-    static Matrix3d ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n);
+    static Matrix3d ransac(vector< pair<Dot*,Dot*> > pairs, int numberOfCorrespondences, int n, double threshold);
     static double squaredEuclideanDistance(MatrixXd a, MatrixXd b);
     static string intToString(int a);
-    static vector< pair<Dot*,Dot*> > getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences);
-    static Matrix3d getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences);
+    static vector< pair<Dot*,Dot*> > getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold);
+    static Matrix3d getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold);
 };
 
 #endif // UTILS_H
