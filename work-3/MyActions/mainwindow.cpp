@@ -72,7 +72,7 @@ void MainWindow::on_actionSave_triggered()
             /*if (i == 1)
             {
                 img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg";
-                img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg";
+                img2Path = "/home/fschuind  t/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg";
                 outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1-2.jpg";
             }
             else
@@ -84,51 +84,46 @@ void MainWindow::on_actionSave_triggered()
             }*/
             img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg";
             img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg";
-            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1-2-teste.jpg";
+            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1-2.jpg";
+
+            QImage inputImage1 = QImage(img1Path.c_str());
+            QImage inputImage2 = QImage(img2Path.c_str());
 
             cout << "*************** INPUT ***************" << endl;
             cout << img1Path << endl;
-            pairs = Utils::sift(img1Path.c_str(),
-                                img2Path.c_str());
-            cout << img2Path << endl;
+                        cout << img2Path << endl;
             cout << "*************** INPUT ***************" << endl;
             cout << endl;
+
+            /*pairs = Utils::sift(img1Path.c_str(),
+                                img2Path.c_str());
 
             cout << "*************** NUMERO DE PARES DO MATCHER ***************" << endl;
             cout << (int)pairs.size() << endl;
             cout << "*************** NUMERO DE PARES DO MATCHER ***************" << endl;
             cout << endl;
 
-
-            /*vector< pair<Dot*,Dot*> > bestInliers = Utils::getBestPairs(pairs, 200, 4);
-            cout << "*************** QUANTIDADE DOS MELHORES INLIERS ***************" << endl;
-            cout << (int)bestInliers.size() << endl;
-            cout << "*************** QUANTIDADE DOS MELHORES INLIERS ***************" << endl;
-            cout << endl;*/
-
-            /*cout << "H somente normalizada" << endl;
-            H = Utils::dltNormalized(bestInliers);
-            cout << H << endl;
-            cout << "H somente normalizada" << endl;
-            cout << endl;*/
-
-            /*cout << "H melhor H1" << endl;
-            H = Utils::getBestH1(pairs, 200, 4);
-            cout << H << endl;
-            cout << "H melhor H1" << endl;
-            cout << endl;*/
-
             cout << "H ransac" << endl;
-            H = Utils::ransac(pairs, 4, 200, 5);
+            H = Utils::ransac(pairs, 4, 200, 0.05);
             cout << H << endl;
             cout << "H ransac" << endl;
+            cout << endl;*/
+
+            QVector< QVector<Vector3f> > lists = Utils::sift2(img1Path.c_str(),
+                                                             img2Path.c_str());
+
+            cout << "H ransac2" << endl;
+            Matrix3f Hf = Utils::ransac2(lists.at(0), lists.at(1), 200, 0.05, true, 4);
+            H << (double)Hf(0,0), (double)Hf(0,1), (double)Hf(0,2),
+                 (double)Hf(1,0), (double)Hf(1,1), (double)Hf(1,2),
+                 (double)Hf(2,0), (double)Hf(2,1), (double)Hf(2,2);
+            cout << H << endl;
+            cout << "H ransac2" << endl;
             cout << endl;
 
-            QImage inputImage1 = QImage(img1Path.c_str());
-            QImage inputImage2 = QImage(img2Path.c_str());
+            H = H.inverse().eval();
 
             vector< std::pair<QImage, Matrix3d> > inputPairs;
-            //cout << H << endl;
             inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage1, Matrix<double, 3, 3>::Identity()));
             inputPairs.push_back(std::pair<QImage, Matrix3d>(inputImage2, H));
 

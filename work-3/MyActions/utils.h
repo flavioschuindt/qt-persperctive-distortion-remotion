@@ -12,6 +12,7 @@
 #include <QSize>
 #include <QPainter>
 #include <QImageWriter>
+#include <QDebug>
 #include <iostream>
 #include <math.h>
 #include "opencv2/core/core.hpp"
@@ -63,6 +64,16 @@ public:
     static string intToString(int a);
     static vector< pair<Dot*,Dot*> > getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold);
     static Matrix3d getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold);
+    static cv::Mat QImage2Mat(const QImage &inImage, bool inCloneImageData = true );
+    static Matrix3f ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSize);
+    static QVector<int> selectRandomPairs(int numberOfCorrespondences, int size);
+    static QVector<int> getRansacInliers(QVector<Vector3f> pA, QVector<Vector3f> pB, Matrix3f H, float threshold);
+    static MatrixXf calculate_H(QVector <Vector3f> bp, QVector <Vector3f> rp);
+    static float squaredEuclideanDistance(Vector3f a, Vector3f b);
+    static QVector< QVector<Vector3f> > sift2(const char *img1Path, const char * img2Path);
+    static Matrix3f dlt2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
+    static Matrix3f getTMatrix2(QVector<Vector3f> points);
+    static Matrix3f dltNormalized2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
 };
 
 #endif // UTILS_H

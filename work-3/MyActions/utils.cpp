@@ -489,6 +489,7 @@ QImage Utils::panoramic(vector< std::pair<QImage, Matrix3d> > pairs)
     int height_output = (width_output / ((bound.right-bound.left)/(bound.bottom-bound.top)));
     MatrixXd x(3,1);
     MatrixXd y(3,1);
+
     QImage newImage = QImage(width_output,  height_output, QImage::Format_ARGB32);
 
     QPainter painter;
@@ -550,15 +551,21 @@ vector< pair<Dot*,Dot*> > Utils::sift(const char *img1Path, const char * img2Pat
 {
     vector< pair<Dot*, Dot*> > goodPairs;
 
-    Mat img_1 = imread( img1Path, CV_LOAD_IMAGE_GRAYSCALE );
-    Mat img_2 = imread( img2Path, CV_LOAD_IMAGE_GRAYSCALE );
+    QImage inputImage1 = QImage(img1Path);
+    QImage inputImage2 = QImage(img2Path);
+
+    //Mat img_1 = imread( img1Path, CV_LOAD_IMAGE_GRAYSCALE );
+    //Mat img_2 = imread( img2Path, CV_LOAD_IMAGE_GRAYSCALE );
+
+    Mat img_1 = Utils::QImage2Mat(inputImage1);
+    Mat img_2 = Utils::QImage2Mat(inputImage2);
 
     if( !img_1.data || !img_2.data )
         return goodPairs;
 
       //-- Step 1: Detect the keypoints using SIFT Detector
 
-      SiftFeatureDetector detector;
+      SiftFeatureDetector detector(20000);
 
       std::vector<KeyPoint> keypoints_1, keypoints_2;
 
@@ -581,9 +588,9 @@ vector< pair<Dot*,Dot*> > Utils::sift(const char *img1Path, const char * img2Pat
       double max_dist = 0; double min_dist = 100;
 
       //-- Quick calculation of max and min distances between keypoints
-      for( int i = 0; i < descriptors_1.rows; i++ )
+      for( int i = 0; i < (int)matches.size(); i++ )
       {
-        double dist = matches[i].distance;
+        double dist = matches[1].distance;
         if( dist < min_dist ) min_dist = dist;
         if( dist > max_dist ) max_dist = dist;
       }
@@ -594,7 +601,7 @@ vector< pair<Dot*,Dot*> > Utils::sift(const char *img1Path, const char * img2Pat
       //-- PS.- radiusMatch can also be used here.
       std::vector< DMatch > good_matches;
 
-      for( int i = 0; i < descriptors_1.rows; i++ )
+      for( int i = 0; i < (int)matches.size(); i++ )
       {
           if( matches[i].distance <= max(2*min_dist, 0.02) )
             good_matches.push_back( matches[i]);
@@ -719,20 +726,21 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
     vector< pair<Dot*,Dot*> > bestInliersInCurrentIteration;
     vector< pair<Dot*,Dot*> > randomPairs;
     //double N = 588;
-    //double Ni = 0;
-    //double w = 1; // Inliers likelihood
-    //double e = 0; // Outliers likelihood
-    //double p = 0.99;
-    //bool adaptativeSearch = true;
-    //int ransacCounter = 0;
+    double Ni = 0;
+    double w = 1; // Inliers likelihood
+    double e = 0; // Outliers likelihood
+    double p = 0.99;
+    bool adaptativeSearch = true;
+    int ransacCounter = 0;
 
-    //while(ransacCounter < N){
-    for (int i = 0; i < n; i++){
+    while(ransacCounter < n){
+    //for (int i = 0; i < n; i++){
 
         bestInliersInCurrentIteration.clear();
         int inliers = 0;
         // get random correspondences
         randomPairs.clear();
+        QVector<Vector3f> l1, l2;
         for (int j = 0; j < numberOfCorrespondences; j++)
         {
             int correspondence = rand() % pairs.size();
@@ -746,25 +754,22 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
             std::pair<Dot *, Dot *> randomPair(pointInFirstImage, pointInSecondImage);
             randomPairs.push_back(randomPair);
 
+            Vector3f a, b;
+            a << pointInFirstImage->x(), pointInFirstImage->y(), 1;
+            b << pointInSecondImage->x(), pointInSecondImage->y(), 1;
+            l1.push_back(a);
+            l2.push_back(b);
         }
 
         // do DLT with these random pairs
-        Matrix3d H1 = dltNormalized(randomPairs);
-        /*vector<Vector3i> a;
-        vector<Vector3d> b;
-        Vector3i first;
-        Vector3d second;
-        for (int s = 0; s < randomPairs.size(); s++)
-        {
-            pair <Dot*, Dot*> p = pairs.at(s);
-            first << p.first->x(), p.first->y(), 1;
-            second << p.second->x(), p.second->y(), 1;
-            a.push_back(first);
-            b.push_back(second);
-        }
-        Matrix3d H1 = calculateHomographyMatrix(a, b);*/
+        /*Matrix3d H1 = dltNormalized(randomPairs);
+        H1 = H1.inverse().eval();*/
 
-
+        Matrix3f H1f = calculate_H(l1, l2);
+        Matrix3d H1;
+        H1 << (double)H1f(0,0), (double)H1f(0,1), (double)H1f(0,2),
+             (double)H1f(1,0), (double)H1f(1,1), (double)H1f(1,2),
+             (double)H1f(2,0), (double)H1f(2,1), (double)H1f(2,2);
         // Apply H in all points in the first image and calculate error between z and y
         MatrixXd y(3,1);
         MatrixXd x(3,1);
@@ -780,8 +785,8 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
             y = H1*x;
             y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
             z << pointInSecondImage->x(), pointInSecondImage->y(),1;
-            double distance = squaredEuclideanDistance(z, y); //(squaredEuclideanDistance(x, H1.inverse().eval()*z) + squaredEuclideanDistance(z, y));
-            //cout << distance << endl;
+            double distance = squaredEuclideanDistance(z, y);
+
             if ( distance < threshold)
             {
                 inliers++;
@@ -795,22 +800,21 @@ vector< pair<Dot*,Dot*> > Utils::getBestPairs(vector< pair<Dot*,Dot*> > pairs, i
             bestInliers = bestInliersInCurrentIteration;
         }
 
-        /*if(adaptativeSearch){
-            e = 1 - ((double)inliers/pairs.size());
+        if(adaptativeSearch){
+            e = 1 - ((float)inliers/pairs.size());
             if(e < w){
                 w = e;
-                Ni = log(1-p)/log(1 - pow(1 -w,4));
-                if(Ni < N){
+                Ni = 72;
+                if(Ni < n){
                      adaptativeSearch = false;
                 }else{
-                    N = Ni;
+                    n = Ni;
                 }
             }
         }
-
         ransacCounter++;
-        if(ransacCounter >= 10000)
-            break;*/
+        if(ransacCounter >= 1000)
+            break;
 
     }
     return bestInliers;
@@ -824,8 +828,6 @@ Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCo
     vector< pair<Dot*,Dot*> > bestInliersInCurrentIteration;
     vector< pair<Dot*,Dot*> > randomPairs;
     Matrix3d bestH1;
-    //cout << "blaaa" << endl;
-    //cout << bestH1 << endl;
     for (int i = 0; i < n; i++)
     {
         bestInliersInCurrentIteration.clear();
@@ -865,7 +867,7 @@ Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCo
             y = H1*x;
             y << y(0,0)/y(2,0), y(1,0)/y(2,0), 1;
             z << pointInSecondImage->x(), pointInSecondImage->y(),1;
-            if (squaredEuclideanDistance(z, y) <= threshold)
+            if (squaredEuclideanDistance(z, y) < threshold)
             {
                 inliers++;
                 std::pair <Dot*, Dot*> inlier(pointInFirstImage, pointInSecondImage);
@@ -874,17 +876,12 @@ Matrix3d Utils::getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCo
         }
         if (inliers > maxInliers)
         {
-            //cout << "tem que passar auqi para mudar" << endl;
             maxInliers = inliers;
             bestInliers = bestInliersInCurrentIteration;
             bestH1 = H1;
-            //cout << "==== Melhor H1 =====" << endl;
-            //cout << H1 << endl;
-            //cout << "==== Melhor H1 ====" << endl;
         }
 
     }
-    //cout << bestH1 << endl;
     return bestH1;
 }
 
@@ -916,3 +913,301 @@ string Utils::intToString(int a)
     s = out.str();
     return s;
 }
+
+cv::Mat Utils::QImage2Mat(const QImage &inImage, bool inCloneImageData)
+{
+    switch ( inImage.format() )
+    {
+       // 8-bit, 4 channel
+       case QImage::Format_RGB32:
+       {
+          cv::Mat  mat( inImage.height(), inImage.width(), CV_8UC4, const_cast<uchar*>(inImage.bits()), inImage.bytesPerLine() );
+          return (inCloneImageData ? mat.clone() : mat);
+       }
+       // 8-bit, 3 channel
+       case QImage::Format_RGB888:
+       {
+          if ( !inCloneImageData )
+             qWarning() << "ASM::QImageToCvMat() - Conversion requires cloning since we use a temporary QImage";
+
+          QImage   swapped = inImage.rgbSwapped();
+          return cv::Mat( swapped.height(), swapped.width(), CV_8UC3, const_cast<uchar*>(swapped.bits()), swapped.bytesPerLine() ).clone();
+       }
+       // 8-bit, 1 channel
+       case QImage::Format_Indexed8:
+       {
+          cv::Mat  mat( inImage.height(), inImage.width(), CV_8UC1, const_cast<uchar*>(inImage.bits()), inImage.bytesPerLine() );
+          return (inCloneImageData ? mat.clone() : mat);
+       }
+       default:
+          qWarning() << "ASM::QImageToCvMat() - QImage format not handled in switch:" << inImage.format();
+          break;
+    }
+    return cv::Mat();
+}
+
+Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSize)
+{
+    int pairsQuantity = std::min(pA.count(), pB.count());
+    int ransacCounter = 0;
+    QVector<int> inliers, maxInliers;
+    Matrix3f Hfinal;
+    double e = 0.5; // Outliers likelihood
+    double p = 0.99;
+    while(ransacCounter < N){
+        QVector<int> randomPairsIndexes = selectRandomPairs(randomSize, pairsQuantity);
+
+        QVector<Vector3f> randomPointsInFirstImage;
+        QVector<Vector3f> randomPointsInSecondImage;
+        for(int i =0 ; i < randomPairsIndexes.size(); i++ )
+        {
+            randomPointsInFirstImage.push_back(pA.at(randomPairsIndexes.at(i)));
+            randomPointsInSecondImage.push_back(pB.at(randomPairsIndexes.at(i)));
+        }
+        Matrix3f Htemp;
+        Htemp = calculate_H(randomPointsInFirstImage, randomPointsInSecondImage);
+
+        inliers = getRansacInliers(pA, pB, Htemp, threshold);
+        if(inliers.size() > maxInliers.size()){
+            maxInliers = inliers;
+            Hfinal = Htemp;
+        }
+        if(adaptativeSearch){
+            e = 1 - ((float)inliers.size()/pairsQuantity);
+            N = log(1-p)/log(1 - pow(1 - e, randomSize));
+        }
+        ransacCounter++;
+        cout << "N calculado" << endl;
+        cout << N << endl;
+    }
+    qDebug() << ransacCounter;
+    qDebug() << maxInliers.size();
+    return Hfinal;
+}
+
+QVector<int> Utils::selectRandomPairs(int numberOfCorrespondences, int size)
+{
+    QVector<int> selectedIndexes;
+    for (int j = 0; j < numberOfCorrespondences; j++)
+    {
+        int correspondence = rand() % size;
+        selectedIndexes.push_back(correspondence);
+    }
+    return selectedIndexes;
+}
+
+QVector<int> Utils::getRansacInliers(QVector<Vector3f> pA, QVector<Vector3f> pB, Matrix3f H, float threshold)
+{
+    QVector<int> inliers;
+    for(int i = 0; i < pA.size(); i++){
+        Vector3f v;
+        v = H * pA.at(i);
+        v/=v(2);
+        float distance = squaredEuclideanDistance(v, pB.at(i));
+        if(distance < threshold){
+            inliers.push_back(i);
+        }
+    }
+    return inliers;
+}
+
+MatrixXf Utils::calculate_H(QVector <Vector3f> bp, QVector <Vector3f> rp)
+{
+    //CREATE MATRIX
+    MatrixXf m(8, 8);
+    for(int i = 0; i< rp.count(); i++){
+        MatrixXf lineA(1,8);
+        lineA << bp[i](0), bp[i](1), 1, 0, 0, 0, -(bp[i](0)*rp[i](0)), -(bp[i](1)*rp[i](0));
+        MatrixXf lineB(1,8);
+        lineB << 0, 0, 0, bp[i](0), bp[i](1), 1, -(bp[i](0)*rp[i](1)), -(bp[i](1)*rp[i](1));
+        m.row(i*2) << lineA;
+        m.row(i*2 + 1) << lineB;
+    }
+    MatrixXf A  = m.inverse();
+    MatrixXf B(8,1);
+    for(int i = 0; i< rp.count(); i++){
+        B.row(i*2) << rp.at(i)(0);
+        B.row(i*2 +1) << rp.at(i)(1);
+    }
+    MatrixXf v = A*B;
+    Matrix3f h;
+
+    h << v(0), v(1), v(2), v(3), v(4), v(5), v(6), v(7), 1;
+
+    return h;
+}
+
+float Utils::squaredEuclideanDistance(Vector3f a, Vector3f b)
+{
+    float distance = 0;
+    for (int i = 0; i < a.size(); i++)
+         distance += pow( (a(i) - b(i)), 2);
+    return distance;
+}
+
+QVector< QVector<Vector3f> > Utils::sift2(const char *img1Path, const char * img2Path)
+{
+    QVector< QVector<Vector3f> > goodPairs;
+
+    QImage inputImage1 = QImage(img1Path);
+    QImage inputImage2 = QImage(img2Path);
+
+    //Mat img_1 = imread( img1Path, CV_LOAD_IMAGE_GRAYSCALE );
+    //Mat img_2 = imread( img2Path, CV_LOAD_IMAGE_GRAYSCALE );
+
+    Mat img_1 = Utils::QImage2Mat(inputImage1);
+    Mat img_2 = Utils::QImage2Mat(inputImage2);
+
+    if( !img_1.data || !img_2.data )
+        return goodPairs;
+
+      //-- Step 1: Detect the keypoints using SIFT Detector
+
+      SiftFeatureDetector detector;
+
+      std::vector<KeyPoint> keypoints_1, keypoints_2;
+
+      detector.detect( img_1, keypoints_1 );
+      detector.detect( img_2, keypoints_2 );
+
+      //-- Step 2: Calculate descriptors (feature vectors)
+      SiftDescriptorExtractor extractor;
+
+      Mat descriptors_1, descriptors_2;
+
+      extractor.compute( img_1, keypoints_1, descriptors_1 );
+      extractor.compute( img_2, keypoints_2, descriptors_2 );
+
+      //-- Step 3: Matching descriptor vectors using FLANN matcher
+      FlannBasedMatcher matcher;
+      std::vector< DMatch > matches;
+      matcher.match( descriptors_1, descriptors_2, matches );
+
+      double max_dist = 0; double min_dist = 100;
+
+      //-- Quick calculation of max and min distances between keypoints
+      for( int i = 0; i < (int)matches.size(); i++ )
+      {
+        double dist = matches[1].distance;
+        if( dist < min_dist ) min_dist = dist;
+        if( dist > max_dist ) max_dist = dist;
+      }
+
+      //-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
+      //-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
+      //-- small)
+      //-- PS.- radiusMatch can also be used here.
+      std::vector< DMatch > good_matches;
+
+      for( int i = 0; i < (int)matches.size(); i++ )
+      {
+          if( matches[i].distance <= max(2*min_dist, 0.02) )
+            good_matches.push_back( matches[i]);
+      }
+
+      QVector<Vector3f> listaTemp_0;
+      QVector<Vector3f> listaTemp_1;
+      for(int i = 1 ; i < (int)good_matches.size(); i++){
+          float x = keypoints_1[good_matches[i].queryIdx].pt.x;
+          float y = keypoints_1[good_matches[i].queryIdx].pt.y;
+          Vector3f temp;
+          temp << x, y, 1;
+          listaTemp_0.push_back(temp);
+
+          x = keypoints_2[good_matches[i].trainIdx].pt.x;
+          y = keypoints_2[good_matches[i].trainIdx].pt.y;
+          Vector3f temp2;
+          temp2 << x, y, 1;
+          listaTemp_1.push_back(temp2);
+      }
+      goodPairs.push_back(listaTemp_0);
+      goodPairs.push_back(listaTemp_1);
+      return goodPairs;
+}
+
+
+Matrix3f Utils::dlt2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage)
+{
+    MatrixXf A(pointsFirstImage.size()*2, 9);
+
+    for(std::vector<int>::size_type i = 0; i < (std::vector<int>::size_type)pointsFirstImage.size(); i++) {
+
+        Vector3f firstPoint, secondPoint;
+        firstPoint << pointsFirstImage.at(i);
+        secondPoint << pointsSecondImage.at(i);
+        A.row(i * 2) << 0, 0, 0, -firstPoint(0), -firstPoint(1), -1, secondPoint(1)*firstPoint(0), secondPoint(1)*firstPoint(1), secondPoint(1);
+        A.row(i * 2 + 1) << firstPoint(0), firstPoint(1), 1, 0, 0, 0, -secondPoint(0)*firstPoint(0), -secondPoint(0)*firstPoint(1), -secondPoint(0);
+
+    }
+
+    JacobiSVD<MatrixXf> SVD(A, Eigen::ComputeThinV);
+    VectorXf h = SVD.matrixV().col(SVD.matrixV().cols() - 1);
+    Matrix3f H;
+    H <<    h(0), h(1), h(2),
+            h(3), h(4), h(5),
+            h(6), h(7), h(8);
+    return H;
+}
+
+Matrix3f Utils::getTMatrix2(QVector<Vector3f> points)
+{
+    float u_avg = 0;
+    float v_avg = 0;
+    int u_sum = 0;
+    int v_sum = 0;
+
+    for(std::vector<int>::size_type i = 0; i < (std::vector<int>::size_type)points.size(); i++) {
+        Vector3f point = points.at(i);
+        u_sum += point(0);
+        v_sum += point(1);
+    }
+
+    u_avg = u_sum / (float)points.size();
+    v_avg = v_sum / (float)points.size();
+
+
+    float sum = 0;
+    float s = 0;
+    for(std::vector<int>::size_type i = 0; i < (std::vector<int>::size_type)points.size(); i++) {
+        Vector3f point = points.at(i);
+        sum += sqrt(pow(((float)point(0) - u_avg), 2) + pow(((float)point(1) - v_avg), 2));
+    }
+    s = (sqrt(2) * (float)points.size()) / sum;
+
+    Matrix3f T;
+    T << s, 0, -s*u_avg,
+         0, s, -s*v_avg,
+         0, 0, 1;
+    return T;
+}
+
+Matrix3f Utils::dltNormalized2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage)
+{
+
+    Matrix3f T = getTMatrix2(pointsFirstImage);
+    Matrix3f T2 = getTMatrix2(pointsSecondImage);
+
+    QVector<Vector3f> l1, l2;
+    Vector3f p1, p2;
+
+    for(std::vector<int>::size_type i = 0; i < (std::vector<int>::size_type)pointsFirstImage.size(); i++) {
+
+        p1 << pointsFirstImage.at(i)(0), pointsFirstImage.at(i)(1), 1;
+        p2 << pointsSecondImage.at(i)(0), pointsSecondImage.at(i)(1), 1;
+
+        Vector3f res = T * p1;
+        l1.push_back(res);
+        res = T2 * p2;
+        l2.push_back(res);
+
+    }
+
+    Matrix3f Hn = dlt2(l1, l2);
+    Matrix3f H = T.inverse().eval() * Hn * T2;
+
+    return H;
+
+}
+
+
+
