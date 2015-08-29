@@ -74,6 +74,7 @@ public:
     static Matrix3f dlt2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
     static Matrix3f getTMatrix2(QVector<Vector3f> points);
     static Matrix3f dltNormalized2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
+    static Matrix3f gaussNewton(Matrix3f H, QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
 };
 
 #endif // UTILS_H

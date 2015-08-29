@@ -954,6 +954,7 @@ Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, do
     Matrix3f Hfinal;
     double e = 0.5; // Outliers likelihood
     double p = 0.99;
+    QVector<Vector3f> bestInliersA, bestInliersB;
     while(ransacCounter < N){
         QVector<int> randomPairsIndexes = selectRandomPairs(randomSize, pairsQuantity);
 
@@ -977,11 +978,46 @@ Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, do
             N = log(1-p)/log(1 - pow(1 - e, randomSize));
         }
         ransacCounter++;
-        cout << "N calculado" << endl;
         cout << N << endl;
     }
     qDebug() << ransacCounter;
     qDebug() << maxInliers.size();
+    for(int i =0 ; i < maxInliers.size(); i++ )
+    {
+        bestInliersA.push_back(pA.at(maxInliers.at(i)));
+        bestInliersB.push_back(pB.at(maxInliers.at(i)));
+    }
+    cout << "H do ransac2 antes de chamar gaussNewton" << endl;
+    cout << Hfinal << endl;
+    cout << endl;
+    Matrix3f HfinalA = Hfinal;
+    VectorXf A(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
+    //cout << "Norma de H antes do gaussNewton" << endl;
+    //cout << A.squaredNorm() << endl;
+    Hfinal = gaussNewton(Hfinal, bestInliersA, bestInliersB);
+    Matrix3f HfinalB = Hfinal;
+    VectorXf B(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
+    //cout << "Norma de H depois do gaussNewton" << endl;
+    //cout << B.squaredNorm() << endl;
+
+    if (A.squaredNorm() < B.squaredNorm())
+    {
+        cout << "Erro de +" << (( B.squaredNorm() - A.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
+    }
+    else
+    {
+        cout << "Erro de -" << (( A.squaredNorm() - B.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
+    }
+
+    if (HfinalA.norm() < HfinalB.norm())
+    {
+        cout << "Erro de +" << (( HfinalB.norm() - HfinalA.norm() ) / HfinalA.norm())*100 << "%" << endl;
+    }
+    else
+    {
+        cout << "Erro de -" << (( HfinalA.norm() - HfinalB.norm() ) / HfinalA.norm())*100 << "%" << endl;
+    }
+
     return Hfinal;
 }
 
@@ -1207,6 +1243,100 @@ Matrix3f Utils::dltNormalized2(QVector<Vector3f> pointsFirstImage, QVector<Vecto
 
     return H;
 
+}
+
+Matrix3f Utils::gaussNewton(Matrix3f H, QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage)
+{
+    MatrixXf Ji(2, 9);
+    MatrixXf J(pointsFirstImage.size()*2, 9);
+    VectorXf fh(pointsFirstImage.size()*2);
+    VectorXf X(pointsFirstImage.size()*2);
+    VectorXf fhTemp(pointsFirstImage.size()*2);
+    VectorXf XTemp(pointsFirstImage.size()*2);
+    Matrix3f HTemp;
+    int counter = 0;
+    double lambda = 1;
+    double squaredNorm, squaredNormTemp;
+    squaredNorm = squaredNormTemp = 0;
+    //H(0,2) = H(0,2) - 10;
+    //H(1,2) = H(1,2) - 10;
+    do
+    {
+        counter++;
+        for (int i = 0; i < (int)pointsFirstImage.size(); i++)
+        {
+            Vector3f xi = pointsFirstImage.at(i);
+            Vector3f xilinha = pointsSecondImage.at(i);
+            Ji << xi(0)/xilinha(2), xi(1)/xilinha(2), xi(2)/xilinha(2), 0, 0, 0, -xi(0)*xilinha(0)/xilinha(2), xi(1)*xilinha(0)/xilinha(2), xi(2)*xilinha(0)/xilinha(2),
+                  0, 0, 0, xi(0)/xilinha(2), xi(1)/xilinha(2), xi(2)/xilinha(2), -xi(0)*xilinha(1)/xilinha(2), xi(1)*xilinha(1)/xilinha(2), xi(2)*xilinha(1)/xilinha(2);
+            J.row(i*2) << Ji.row(0);
+            J.row(i*2 + 1) << Ji.row(1);
+
+            Vector3f Hxi = H*xi;
+            Hxi /= Hxi(2);
+            fh(i*2) = Hxi(0);
+            fh(i*2 + 1) = Hxi(1);
+            X(i*2) = xilinha(0);
+            X(i*2 + 1) = xilinha(1);
+         }
+
+        MatrixXf JT(9, pointsFirstImage.size()*2);
+        JT = J.transpose().eval();
+
+        VectorXf deltaX(9);
+        deltaX = (JT*J).inverse().eval()*(-JT)*fh;
+
+        if ( counter > 1 && fabs(squaredNormTemp - squaredNorm) < 1e-8 )
+            break;
+
+        VectorXf diff = X - fh;
+        squaredNorm = diff.squaredNorm();
+
+        while(true)
+        {
+            HTemp(0,0) = H(0,0) + lambda*deltaX(0);
+            HTemp(0,1) = H(0,1) + lambda*deltaX(1);
+            HTemp(0,2) = H(0,2) + lambda*deltaX(2);
+            HTemp(1,0) = H(1,0) + lambda*deltaX(3);
+            HTemp(1,1) = H(1,1) + lambda*deltaX(4);
+            HTemp(1,2) = H(1,2) + lambda*deltaX(5);
+            HTemp(2,0) = H(2,0) + lambda*deltaX(6);
+            HTemp(2,1) = H(2,1) + lambda*deltaX(7);
+            HTemp(2,2) = H(2,2) + lambda*deltaX(8);
+
+            for (int i = 0; i < (int)pointsFirstImage.size(); i++)
+            {
+                Vector3f xi = pointsFirstImage.at(i);
+                Vector3f xilinha = pointsSecondImage.at(i);
+                Vector3f Hxi = HTemp*xi;
+                Hxi /= Hxi(2);
+                fhTemp(i*2) = Hxi(0);
+                fhTemp(i*2 + 1) = Hxi(1);
+                XTemp(i*2) = xilinha(0);
+                XTemp(i*2 + 1) = xilinha(1);
+             }
+
+             VectorXf diffTemp = XTemp - fhTemp;
+             squaredNormTemp = diffTemp.squaredNorm();
+             /*cout << endl;
+             cout << "counter" << endl;
+             cout << counter << endl;
+             cout << "lambda" << endl;
+             cout << lambda << endl;
+             cout << "squaredNormTemp" << endl;
+             cout << squaredNormTemp << endl;
+             cout << "squaredNorm" << endl;
+             cout << squaredNorm << endl;
+             cout << endl;*/
+             if (squaredNormTemp <= squaredNorm)
+                 break;
+             lambda /= 2;
+        }
+
+        H = HTemp;
+        lambda = std::max(2*lambda, 1.0);
+     } while (counter <= 1000);
+     return H;
 }
 
 
