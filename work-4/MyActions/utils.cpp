@@ -1341,5 +1341,52 @@ Matrix3f Utils::gaussNewton(Matrix3f H, QVector<Vector3f> pointsFirstImage, QVec
      return H;
 }
 
+Matrix3f Utils::calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB)
+{
+    int pairsQuantity = std::min(pA.count(), pB.count());
+    QVector<int> randomPairsIndexes = selectRandomPairs(8, pairsQuantity);
+
+    QVector<Vector3f> l1, l2;
+    for (int i=0; i < randomPairsIndexes.length(); i++)
+    {
+        l1.push_back(pA.at(randomPairsIndexes.at(i)));
+        l2.push_back(pB.at(randomPairsIndexes.at(i)));
+    }
+
+    Matrix3f T1 = getTMatrix2(l1);
+    Matrix3f T2 = getTMatrix2(l2);
+
+    Matrix3f FTemp, FRestricted;
+    MatrixXf A;
+
+    for (int i = 0; i < 8; i++)
+    {
+        Vector3f first = l1.at(i);
+        Vector3f second = l2.at(i);
+
+        float x = (T1*first)(0);
+        float y = (T1*first)(1);
+        float xlinha = (T2*second)(0);
+        float ylinha = (T2*second)(1);
+
+        A.row(i) << xlinha*x, xlinha*y, xlinha, ylinha*x, ylinha*y, ylinha, x, y, 1;
+    }
+
+    JacobiSVD<MatrixXf> SVD(A, ComputeFullV);
+    VectorXf x = SVD.matrixV().col(SVD.matrixV().cols() - 1);
+    FTemp << x(0), x(1), x(2),
+             x(3), x(4), x(5),
+             x(6), x(7), x(8);
+
+    JacobiSVD<MatrixXf> SVD2(FTemp, ComputeFullV | ComputeFullU);
+    VectorXf singularValues;
+    singularValues = SVD2.singularValues();
+    DiagonalMatrix<float, 3,3> D(singularValues(0), singularValues(1), 0);
+    Matrix3f DMat = D.toDenseMatrix();
+    FRestricted = SVD2.matrixU() * DMat * SVD2.matrixV().transpose();
+
+    return T2.transpose().eval()*FRestricted*T1;
+}
+
 
 

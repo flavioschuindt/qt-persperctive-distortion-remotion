@@ -82,9 +82,9 @@ void MainWindow::on_actionSave_triggered()
                 img2Path = rootPath+Utils::intToString(i+1)+".jpg";
                 outputImgPath = rootPath+Utils::intToString(i)+"-"+Utils::intToString(i+1)+".jpg";
             }*/
-            img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1.jpg";
-            img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite2.jpg";
-            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/yosemite1-2.jpg";
+            img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/Im7a.jpg";
+            img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/Im7b.jpg";
+            outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/Im7a-b.jpg";
 
             QImage inputImage1 = QImage(img1Path.c_str());
             QImage inputImage2 = QImage(img2Path.c_str());
