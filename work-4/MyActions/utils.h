@@ -76,6 +76,8 @@ public:
     static Matrix3f dltNormalized2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
     static Matrix3f gaussNewton(Matrix3f H, QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
     static Matrix3f calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB);
+    static Matrix3f build_K(float focalmm, float pixelSize_x, float pixelSize_y, float centerPx_x, float centerPx_y);
+    static Matrix3f calculate_E(Matrix3f F, Matrix3f K, Matrix3f Kl);
 };
 
 #endif // UTILS_H

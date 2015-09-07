@@ -1388,5 +1388,37 @@ Matrix3f Utils::calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB)
     return T2.transpose().eval()*FRestricted*T1;
 }
 
+Matrix3f Utils::build_K(float focalmm, float pixelSize_x, float pixelSize_y, float centerPx_x, float centerPx_y)
+{
+    Matrix3f K;
+
+    float ax = focalmm * pixelSize_x;
+    float ay = focalmm * pixelSize_y;
+
+    float x0 = pixelSize_x * centerPx_x;
+    float y0 = pixelSize_y * centerPx_y;
+
+    K << ax, 0, x0,
+         0, ay, y0,
+         0,  0,  1;
+
+    return K;
+}
+
+Matrix3f Utils::calculate_E(Matrix3f F, Matrix3f K, Matrix3f Kl)
+{
+    Matrix3f E;
+
+    E = Kl.transpose().eval() * F * K;
+
+    Eigen::JacobiSVD<Eigen::MatrixXf> SVD(E, Eigen::ComputeFullV | Eigen::ComputeFullU);
+
+    Eigen::DiagonalMatrix<float, 3,3> D(1,1, 0);
+    Eigen::Matrix3f DMat = D.toDenseMatrix();
+    E = SVD.matrixU() * DMat * SVD.matrixV().transpose();
+
+    return E;
+}
+
 
 
