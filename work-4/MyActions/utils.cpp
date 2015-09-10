@@ -1420,5 +1420,100 @@ Matrix3f Utils::calculate_E(Matrix3f F, Matrix3f K, Matrix3f Kl)
     return E;
 }
 
+MatrixXf Utils::calculate_P(Matrix3f E, Vector3f pA, Vector3f pB)
+{
+    Eigen::Matrix3f W;
+    W <<   0,  -1,  0,
+           1,   0,  0,
+           0,   0,  1;
+    Eigen::Matrix3f Z;
+    Z <<   0,  1,  0,
+          -1,  0,  0,
+           0,  0,  0;
+    Eigen::Matrix3f U, V;
+    Eigen::JacobiSVD<Eigen::MatrixXf> SVD(E, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    U = SVD.matrixU();
+    V = SVD.matrixV();
 
+   if((U*V.transpose()).determinant() < 0)
+   {
+       V.col(2) *= -1;
+   }
 
+   Eigen::Vector3f u3;
+   u3 = U.col(2);
+   Eigen::MatrixXf P1(3,4);
+   Eigen::MatrixXf P2(3,4);
+   Eigen::MatrixXf P3(3,4);
+   Eigen::MatrixXf P4(3,4);
+
+   P1.topLeftCorner(3,3) = U * W * V.transpose();
+   P1.col(3) = u3;
+
+   P2.topLeftCorner(3,3) = U * W * V.transpose();
+   P2.col(3) = -u3;
+
+   P3.topLeftCorner(3,3) = U * W.transpose() * V.transpose();
+   P3.col(3) = u3;
+
+   P4.topLeftCorner(3,3) = U * W.transpose() * V.transpose();
+   P4.col(3) = -u3;
+
+   Vector3f X1, X2;
+   MatrixXf P;
+
+   P << 1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0;
+
+   X1 = P.inverse().eval() * pA;
+   X2 = P1.inverse().eval() * pB;
+
+   if (X1(2) >= 0 && X2(2) >= 0)
+       return P1;
+
+   X1 = P.inverse().eval() * pA;
+   X2 = P2.inverse().eval() * pB;
+
+   if (X1(2) >= 0 && X2(2) >= 0)
+       return P2;
+
+   X1 = P.inverse().eval() * pA;
+   X2 = P3.inverse().eval() * pB;
+
+   if (X1(2) >= 0 && X2(2) >= 0)
+       return P3;
+
+   X1 = P.inverse().eval() * pA;
+   X2 = P4.inverse().eval() * pB;
+
+   if (X1(2) >= 0 && X2(2) >= 0)
+       return P4;
+
+}
+
+QVector<VectorXf> Utils::get3DPointsByTriangulation(QVector<Vector3f> pA, QVector<Vector3f> pB, MatrixXf P, MatrixXf Pl)
+{
+    QVector<VectorXf> points;
+    Matrix4f A;
+    for (int i=0; i < pA.size(); i++)
+    {
+        Vector3f a = pA.at(i);
+        Vector3f b = pB.at(i);
+
+        Eigen::Vector4f v0, v1, v2, v3;
+        v0 = a(0) * P.row(2) - P.row(0);
+        v1 = a(1) * P.row(2) - P.row(1);
+        v2 = b(0) * Pl.row(2) - Pl.row(0);
+        v3 = b(1) * Pl.row(2) - Pl.row(1);
+
+        A << v0.transpose(), v1.transpose(), v2.transpose(), v3.transpose();
+        Eigen::JacobiSVD<Eigen::MatrixXf> SVD(A, Eigen::ComputeFullV);
+        Eigen::VectorXf X = SVD.matrixV().col(SVD.matrixV().cols() - 1);
+        X /= X(3);
+
+        points.push_back(X);
+    }
+    return points;
+
+}

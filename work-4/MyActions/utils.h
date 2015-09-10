@@ -78,6 +78,9 @@ public:
     static Matrix3f calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB);
     static Matrix3f build_K(float focalmm, float pixelSize_x, float pixelSize_y, float centerPx_x, float centerPx_y);
     static Matrix3f calculate_E(Matrix3f F, Matrix3f K, Matrix3f Kl);
+    static MatrixXf calculate_P(Matrix3f E, Vector3f pA, Vector3f pB);
+    static QVector<VectorXf> get3DPointsByTriangulation(QVector<Vector3f> pA, QVector<Vector3f> pB, MatrixXf P, MatrixXf Pl);
+
 };
 
 #endif // UTILS_H
