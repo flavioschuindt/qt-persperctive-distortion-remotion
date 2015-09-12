@@ -75,12 +75,20 @@ public:
     static Matrix3f getTMatrix2(QVector<Vector3f> points);
     static Matrix3f dltNormalized2(QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
     static Matrix3f gaussNewton(Matrix3f H, QVector<Vector3f> pointsFirstImage, QVector<Vector3f> pointsSecondImage);
-    static Matrix3f calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB);
+    static Matrix3f calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB, bool  normalizePoints);
     static Matrix3f build_K(float focalmm, float pixelSize_x, float pixelSize_y, float centerPx_x, float centerPx_y);
     static Matrix3f calculate_E(Matrix3f F, Matrix3f K, Matrix3f Kl);
     static vector<MatrixXf> calculate_P(Matrix3f E);
     static QVector<VectorXf> get3DPointsByTriangulation(QVector<Vector3f> pA, QVector<Vector3f> pB, MatrixXf P, MatrixXf Pl);
     static void exportObj(const string filename, const QVector<VectorXf>  points3D);
+    static QVector< QVector<Vector3f> > thaiLionCorrespondences();
+    static bool readPointsFromObj(const std::string& filename, std::vector<Eigen::Vector3f>& points3D, int max_point_count = INT_MAX);
+    static void buildCorrespondenceFrom3DPoints(const std::vector<Eigen::Vector3f>& points3D,
+                                        const Eigen::MatrixXf& P,
+                                        const Eigen::MatrixXf& Pl,
+                                        QVector<Eigen::Vector3f>& points2D_l1,
+                                        QVector<Eigen::Vector3f>& points2D_l2);
+    static float calculateErrorFundamentalMatrix(QVector<Vector3f> pA, QVector<Vector3f> pB, Matrix3f F);
 };
 
 #endif // UTILS_H

@@ -1343,7 +1343,7 @@ Matrix3f Utils::gaussNewton(Matrix3f H, QVector<Vector3f> pointsFirstImage, QVec
      return H;
 }
 
-Matrix3f Utils::calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB)
+Matrix3f Utils::calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB, bool normalizePoints)
 {
     // TODO: Verifica sem normalização tb.
 
@@ -1356,40 +1356,76 @@ Matrix3f Utils::calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB)
         l1.push_back(pA.at(randomPairsIndexes.at(i)));
         l2.push_back(pB.at(randomPairsIndexes.at(i)));
     }
-
-    Matrix3f T1 = getTMatrix2(l1);
-    Matrix3f T2 = getTMatrix2(l2);
-
-    Matrix3f FTemp, FRestricted;
+    l1 = pA;
+    l2 = pB;
     MatrixXf A(8,9);
-
-    for (int i = 0; i < 8; i++)
+    if (normalizePoints)
     {
-        Vector3f first = l1.at(i);
-        Vector3f second = l2.at(i);
+        Matrix3f T1 = getTMatrix2(l1);
+        Matrix3f T2 = getTMatrix2(l2);
 
-        float x = (T1*first)(0);
-        float y = (T1*first)(1);
-        float xlinha = (T2*second)(0);
-        float ylinha = (T2*second)(1);
+        Matrix3f FTemp, FRestricted;
 
-        A.row(i) << xlinha*x, xlinha*y, xlinha, ylinha*x, ylinha*y, ylinha, x, y, 1;
+        for (int i = 0; i < 8; i++)
+        {
+            Vector3f first = l1.at(i);
+            Vector3f second = l2.at(i);
+
+            float x = (T1*first)(0);
+            float y = (T1*first)(1);
+            float xlinha = (T2*second)(0);
+            float ylinha = (T2*second)(1);
+
+            A.row(i) << xlinha*x, xlinha*y, xlinha, ylinha*x, ylinha*y, ylinha, x, y, 1;
+        }
+
+        JacobiSVD<MatrixXf> SVD(A, ComputeFullV);
+        VectorXf x = SVD.matrixV().col(SVD.matrixV().cols() - 1);
+        FTemp << x(0), x(1), x(2),
+                 x(3), x(4), x(5),
+                 x(6), x(7), x(8);
+
+        JacobiSVD<MatrixXf> SVD2(FTemp, ComputeFullV | ComputeFullU);
+        VectorXf singularValues;
+        singularValues = SVD2.singularValues();
+        DiagonalMatrix<float, 3,3> D(singularValues(0), singularValues(1), 0);
+        Matrix3f DMat = D.toDenseMatrix();
+        FRestricted = SVD2.matrixU() * DMat * SVD2.matrixV().transpose();
+
+        return T2.transpose().eval()*FRestricted*T1;
+    }
+    else
+    {
+        Matrix3f F;
+        for (int i = 0; i < 8; i++)
+        {
+            Vector3f first = l1.at(i);
+            Vector3f second = l2.at(i);
+
+            float x = (first)(0);
+            float y = (first)(1);
+            float xlinha = (second)(0);
+            float ylinha = (second)(1);
+
+            A.row(i) << xlinha*x, xlinha*y, xlinha, ylinha*x, ylinha*y, ylinha, x, y, 1;
+        }
+
+        JacobiSVD<MatrixXf> SVD(A, ComputeFullV);
+        VectorXf x = SVD.matrixV().col(SVD.matrixV().cols() - 1);
+        F << x(0), x(1), x(2),
+                 x(3), x(4), x(5),
+                 x(6), x(7), x(8);
+
+        JacobiSVD<MatrixXf> SVD2(F, ComputeFullV | ComputeFullU);
+        VectorXf singularValues;
+        singularValues = SVD2.singularValues();
+        DiagonalMatrix<float, 3,3> D(singularValues(0), singularValues(1), 0);
+        Matrix3f DMat = D.toDenseMatrix();
+        F = SVD2.matrixU() * DMat * SVD2.matrixV().transpose();
+        return F;
     }
 
-    JacobiSVD<MatrixXf> SVD(A, ComputeFullV);
-    VectorXf x = SVD.matrixV().col(SVD.matrixV().cols() - 1);
-    FTemp << x(0), x(1), x(2),
-             x(3), x(4), x(5),
-             x(6), x(7), x(8);
 
-    JacobiSVD<MatrixXf> SVD2(FTemp, ComputeFullV | ComputeFullU);
-    VectorXf singularValues;
-    singularValues = SVD2.singularValues();
-    DiagonalMatrix<float, 3,3> D(singularValues(0), singularValues(1), 0);
-    Matrix3f DMat = D.toDenseMatrix();
-    FRestricted = SVD2.matrixU() * DMat * SVD2.matrixV().transpose();
-
-    return T2.transpose().eval()*FRestricted*T1;
 }
 
 Matrix3f Utils::build_K(float focalmm, float pixelSize_x, float pixelSize_y, float centerPx_x, float centerPx_y)
@@ -1540,4 +1576,123 @@ void Utils::exportObj(const string filename, const QVector<VectorXf>  points3D)
     }
     file.close();
 }
+
+QVector< QVector<Vector3f> > Utils::thaiLionCorrespondences()
+{
+    QVector<Vector3f> l1, l2;
+    QVector< QVector<Vector3f> > lists;
+
+    l1.push_back(Vector3f(1600, 955, 1));
+    l1.push_back(Vector3f(2164, 960, 1));
+    l1.push_back(Vector3f(1924, 1224, 1));
+    l1.push_back(Vector3f(1912, 1573, 1));
+    l1.push_back(Vector3f(2235, 1675, 1));
+    l1.push_back(Vector3f(1623, 1993, 1));
+    l1.push_back(Vector3f(1845, 2203, 1));
+    l1.push_back(Vector3f(2184, 2193, 1));
+
+    l2.push_back(Vector3f(1528, 916, 1));
+    l2.push_back(Vector3f(2001, 969, 1));
+    l2.push_back(Vector3f(1620, 1204, 1));
+    l2.push_back(Vector3f(1635, 1551, 1));
+    l2.push_back(Vector3f(1929, 1701, 1));
+    l2.push_back(Vector3f(1378, 1932, 1));
+    l2.push_back(Vector3f(1570, 2176, 1));
+    l2.push_back(Vector3f(1867, 2220, 1));
+
+    lists.push_back(l1);
+    lists.push_back(l2);
+
+    return lists;
+}
+
+bool Utils::readPointsFromObj(const std::string& filename, std::vector<Eigen::Vector3f>& points3D, int max_point_count)
+{
+    std::ifstream inFile;
+    inFile.open(filename.c_str());
+
+    if (!inFile.is_open())
+    {
+        std::cerr << "Error: Could not open obj input file: " << filename << std::endl;
+        return false;
+    }
+
+    points3D.clear();
+
+    int i = 0;
+    while (inFile)
+    {
+        std::string str;
+
+        if (!std::getline(inFile, str))
+        {
+            std::cerr << "Error: Problems when reading obj file: " << filename << std::endl;
+            return false;
+        }
+
+        if (str[0] == 'v')
+        {
+            std::stringstream ss(str);
+            std::vector <std::string> record;
+
+            char c;
+            double x, y, z;
+            ss >> c >> x >> y >> z;
+
+            Eigen::Vector3f p(x, y, z);
+            points3D.push_back(p);
+        }
+
+        if (i++ > max_point_count)
+            break;
+    }
+
+    inFile.close();
+    return true;
+}
+
+void Utils::buildCorrespondenceFrom3DPoints(const std::vector<Eigen::Vector3f>& points3D,
+                                    const Eigen::MatrixXf& P,
+                                    const Eigen::MatrixXf& Pl,
+                                    QVector<Eigen::Vector3f>& points2D_l1,
+                                    QVector<Eigen::Vector3f>& points2D_l2)
+{
+    points2D_l1.clear();
+    points2D_l2.clear();
+
+    assert(P.rows() == 3 && P.cols() == 4
+        && Pl.rows() == 3 && Pl.cols() == 4);
+
+    for (int i=0; i < points3D.size(); i++)
+    {
+        Vector3f p3d = points3D.at(i);
+        Eigen::Vector3f x0 = P * p3d.homogeneous();
+        Eigen::Vector3f x1 = Pl * p3d.homogeneous();
+
+        x0 /= x0[2];
+        x1 /= x1[2];
+
+        points2D_l1.push_back(x0);
+        points2D_l2.push_back(x1);
+    }
+
+}
+
+float Utils::calculateErrorFundamentalMatrix(QVector<Vector3f> pA, QVector<Vector3f> pB, Matrix3f F)
+{
+    float error = 0;
+    for (int i = 0; i < pA.size(); i++)
+    {
+        Vector3f x0 = pA.at(i);
+        //cout << x0 << endl;
+        x0 /= x0(2);
+        Vector3f x1 = pB.at(i);
+        //cout << x1 << endl;
+        x1 /= x1(2);
+
+        error += x1.transpose() * F * x0;
+    }
+    return error;
+}
+
 
