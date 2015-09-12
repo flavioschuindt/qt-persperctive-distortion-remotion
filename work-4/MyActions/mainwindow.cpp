@@ -32,18 +32,12 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-    vector< pair<Dot*, Dot*> > pairs;
-    Matrix3d H;
     string img1Path;
     string img2Path;
     string outputImgPath;
 
-    img1Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/Im7a.jpg";
-    img2Path = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/Im7b.jpg";
-    outputImgPath = "/home/fschuindt/dev/qt-persperctive-distortion-remotion/work-3/MyActions/Im7a-b.jpg";
-
-    QImage inputImage1 = QImage(img1Path.c_str());
-    QImage inputImage2 = QImage(img2Path.c_str());
+    img1Path = "/home/vagrant/dev/qt-persperctive-distortion-remotion/work-4/MyActions/thai-lion/DSC_0176.JPG";
+    img2Path = "/home/vagrant/dev/qt-persperctive-distortion-remotion/work-4/MyActions/thai-lion/DSC_0179.JPG";
 
     cout << "*************** INPUT ***************" << endl;
     cout << img1Path << endl;
@@ -53,6 +47,35 @@ void MainWindow::on_actionSave_triggered()
 
     QVector< QVector<Vector3f> > lists = Utils::sift2(img1Path.c_str(),
                                                      img2Path.c_str());
+
+    cout << "Sift completed successfully" << endl;
+
+    Matrix3f F = Utils::calculate_F(lists.at(0), lists.at(1));
+    cout << "F: " << endl;
+    cout << F << endl;
+    Matrix3f K = Utils::build_K(114.873, 0.0130887, 0.0130887, 1936, 1296);
+    cout << "K: " << endl;
+    cout << K << endl;
+    Matrix3f Kl = Utils::build_K(114.873, 0.0130887, 0.0130887, 1936, 1296);
+    cout << "Kl: " << endl;
+    cout << Kl << endl;
+    Matrix3f E = Utils::calculate_E(F, K, Kl);
+    cout << "E: " << endl;
+    cout << E << endl;
+    vector<MatrixXf> Pls = Utils::calculate_P(E);
+    QVector<VectorXf> points;
+    MatrixXf P(3,4);
+    P << 1, 0, 0, 0,
+         0, 1, 0, 0,
+         0, 0, 1, 0;
+    for (int i = 0; i < Pls.size(); i++)
+    {
+        stringstream str;
+        str << "/home/vagrant/dev/qt-persperctive-distortion-remotion/work-4/MyActions/thai-lion/output" << i << ".obj";
+        outputImgPath = str.str();
+        points = Utils::get3DPointsByTriangulation(lists.at(0), lists.at(1), P, Pls.at(i));
+        Utils::exportObj(outputImgPath, points);
+    }
 
 
 }

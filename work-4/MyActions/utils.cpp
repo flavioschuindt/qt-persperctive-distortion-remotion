@@ -1,4 +1,6 @@
 #include "utils.h"
+#include <iostream>
+#include <fstream>
 
 Utils::Utils()
 {
@@ -1343,6 +1345,8 @@ Matrix3f Utils::gaussNewton(Matrix3f H, QVector<Vector3f> pointsFirstImage, QVec
 
 Matrix3f Utils::calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB)
 {
+    // TODO: Verifica sem normalização tb.
+
     int pairsQuantity = std::min(pA.count(), pB.count());
     QVector<int> randomPairsIndexes = selectRandomPairs(8, pairsQuantity);
 
@@ -1357,7 +1361,7 @@ Matrix3f Utils::calculate_F(QVector<Vector3f> pA, QVector<Vector3f> pB)
     Matrix3f T2 = getTMatrix2(l2);
 
     Matrix3f FTemp, FRestricted;
-    MatrixXf A;
+    MatrixXf A(8,9);
 
     for (int i = 0; i < 8; i++)
     {
@@ -1392,11 +1396,11 @@ Matrix3f Utils::build_K(float focalmm, float pixelSize_x, float pixelSize_y, flo
 {
     Matrix3f K;
 
-    float ax = focalmm * pixelSize_x;
-    float ay = focalmm * pixelSize_y;
+    float ax = focalmm / pixelSize_x;  // f / pixelsize
+    float ay = focalmm / pixelSize_y;  // f / pixelsize
 
-    float x0 = pixelSize_x * centerPx_x;
-    float y0 = pixelSize_y * centerPx_y;
+    float x0 = centerPx_x; // centerPx_x
+    float y0 = centerPx_y; // centerPx_y
 
     K << ax, 0, x0,
          0, ay, y0,
@@ -1411,7 +1415,7 @@ Matrix3f Utils::calculate_E(Matrix3f F, Matrix3f K, Matrix3f Kl)
 
     E = Kl.transpose().eval() * F * K;
 
-    Eigen::JacobiSVD<Eigen::MatrixXf> SVD(E, Eigen::ComputeFullV | Eigen::ComputeFullU);
+    Eigen::JacobiSVD<Eigen::MatrixXf> SVD(E, Eigen::ComputeFullV | Eigen::ComputeFullU); //TODO: Retirar isso aqui talvez?
 
     Eigen::DiagonalMatrix<float, 3,3> D(1,1, 0);
     Eigen::Matrix3f DMat = D.toDenseMatrix();
@@ -1420,8 +1424,9 @@ Matrix3f Utils::calculate_E(Matrix3f F, Matrix3f K, Matrix3f Kl)
     return E;
 }
 
-MatrixXf Utils::calculate_P(Matrix3f E, Vector3f pA, Vector3f pB)
+vector<MatrixXf> Utils::calculate_P(Matrix3f E)
 {
+    vector<MatrixXf> ret;
     Eigen::Matrix3f W;
     W <<   0,  -1,  0,
            1,   0,  0,
@@ -1459,14 +1464,21 @@ MatrixXf Utils::calculate_P(Matrix3f E, Vector3f pA, Vector3f pB)
    P4.topLeftCorner(3,3) = U * W.transpose() * V.transpose();
    P4.col(3) = -u3;
 
-   Vector3f X1, X2;
+   ret.push_back(P1);
+   ret.push_back(P2);
+   ret.push_back(P3);
+   ret.push_back(P4);
+
+   return ret;
+
+   /*Vector3f X1, X2;
    MatrixXf P;
 
    P << 1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0;
 
-   X1 = P.inverse().eval() * pA;
+   /X1 = P.inverse().eval() * pA;
    X2 = P1.inverse().eval() * pB;
 
    if (X1(2) >= 0 && X2(2) >= 0)
@@ -1488,7 +1500,7 @@ MatrixXf Utils::calculate_P(Matrix3f E, Vector3f pA, Vector3f pB)
    X2 = P4.inverse().eval() * pB;
 
    if (X1(2) >= 0 && X2(2) >= 0)
-       return P4;
+       return P4;*/
 
 }
 
@@ -1517,3 +1529,15 @@ QVector<VectorXf> Utils::get3DPointsByTriangulation(QVector<Vector3f> pA, QVecto
     return points;
 
 }
+
+void Utils::exportObj(const string filename, const QVector<VectorXf>  points3D)
+{
+    ofstream file;
+    file.open(filename.c_str());
+    for (int i=0; i < points3D.size(); i++)
+    {
+        file << "v " << points3D.at(i).transpose().eval() << std::endl;
+    }
+    file.close();
+}
+
