@@ -65,7 +65,7 @@ public:
     static vector< pair<Dot*,Dot*> > getBestPairs(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold);
     static Matrix3d getBestH1(vector< pair<Dot*,Dot*> > pairs, int n, int numberOfCorrespondences, double threshold);
     static cv::Mat QImage2Mat(const QImage &inImage, bool inCloneImageData = true );
-    static Matrix3f ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSize);
+    static Matrix3f ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSiz, bool nonlinear);
     static QVector<int> selectRandomPairs(int numberOfCorrespondences, int size);
     static QVector<int> getRansacInliers(QVector<Vector3f> pA, QVector<Vector3f> pB, Matrix3f H, float threshold);
     static MatrixXf calculate_H(QVector <Vector3f> bp, QVector <Vector3f> rp);

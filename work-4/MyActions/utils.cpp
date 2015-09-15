@@ -948,7 +948,7 @@ cv::Mat Utils::QImage2Mat(const QImage &inImage, bool inCloneImageData)
     return cv::Mat();
 }
 
-Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSize)
+Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSize, bool nonlinear)
 {
     int pairsQuantity = std::min(pA.count(), pB.count());
     int ransacCounter = 0;
@@ -968,7 +968,7 @@ Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, do
             randomPointsInSecondImage.push_back(pB.at(randomPairsIndexes.at(i)));
         }
         Matrix3f Htemp;
-        Htemp = calculate_H(randomPointsInFirstImage, randomPointsInSecondImage);
+        Htemp = calculate_F(randomPointsInFirstImage, randomPointsInSecondImage, true);
 
         inliers = getRansacInliers(pA, pB, Htemp, threshold);
         if(inliers.size() > maxInliers.size()){
@@ -992,34 +992,36 @@ Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, do
     cout << "H do ransac2 antes de chamar gaussNewton" << endl;
     cout << Hfinal << endl;
     cout << endl;
-    Matrix3f HfinalA = Hfinal;
-    VectorXf A(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
-    //cout << "Norma de H antes do gaussNewton" << endl;
-    //cout << A.squaredNorm() << endl;
-    Hfinal = gaussNewton(Hfinal, bestInliersA, bestInliersB);
-    Matrix3f HfinalB = Hfinal;
-    VectorXf B(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
-    //cout << "Norma de H depois do gaussNewton" << endl;
-    //cout << B.squaredNorm() << endl;
+    if (nonlinear)
+    {
+        Matrix3f HfinalA = Hfinal;
+        VectorXf A(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
+        //cout << "Norma de H antes do gaussNewton" << endl;
+        //cout << A.squaredNorm() << endl;
+        Hfinal = gaussNewton(Hfinal, bestInliersA, bestInliersB);
+        Matrix3f HfinalB = Hfinal;
+        VectorXf B(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
+        //cout << "Norma de H depois do gaussNewton" << endl;
+        //cout << B.squaredNorm() << endl;
 
-    if (A.squaredNorm() < B.squaredNorm())
-    {
-        cout << "Erro de +" << (( B.squaredNorm() - A.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
-    }
-    else
-    {
-        cout << "Erro de -" << (( A.squaredNorm() - B.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
-    }
+        if (A.squaredNorm() < B.squaredNorm())
+        {
+            cout << "Erro de +" << (( B.squaredNorm() - A.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
+        }
+        else
+        {
+            cout << "Erro de -" << (( A.squaredNorm() - B.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
+        }
 
-    if (HfinalA.norm() < HfinalB.norm())
-    {
-        cout << "Erro de +" << (( HfinalB.norm() - HfinalA.norm() ) / HfinalA.norm())*100 << "%" << endl;
+        if (HfinalA.norm() < HfinalB.norm())
+        {
+            cout << "Erro de +" << (( HfinalB.norm() - HfinalA.norm() ) / HfinalA.norm())*100 << "%" << endl;
+        }
+        else
+        {
+            cout << "Erro de -" << (( HfinalA.norm() - HfinalB.norm() ) / HfinalA.norm())*100 << "%" << endl;
+        }
     }
-    else
-    {
-        cout << "Erro de -" << (( HfinalA.norm() - HfinalB.norm() ) / HfinalA.norm())*100 << "%" << endl;
-    }
-
     return Hfinal;
 }
 
