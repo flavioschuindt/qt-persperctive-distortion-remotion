@@ -91,7 +91,7 @@ void MainWindow::on_actionSave_triggered()
     createInitialMatrixes();
 
 
-    cout << "P matrixes to be used in buildCorrespondenceFrom3DPoints" << endl;
+    cout << "P matrixes to be used in obtain2DPointsCorrespondenceFrom3DPoints" << endl;
     P = K * Rt1;
     Pl = Kl * Rt2;
     cout << "P: " << endl;
@@ -101,8 +101,8 @@ void MainWindow::on_actionSave_triggered()
 
     QVector<Eigen::Vector3f> points2D_l1, points2D_l2;
 
-    Utils::readPointsFromObj("/home/vagrant/dev/qt-persperctive-distortion-remotion/work-4/MyActions/thai-lion/thai-lion-faces.obj", Points3D, 36000);
-    Utils::buildCorrespondenceFrom3DPoints(Points3D, P, Pl, points2D_l1, points2D_l2);
+    Utils::read3DPointsFromObj("/home/vagrant/dev/qt-persperctive-distortion-remotion/work-4/MyActions/thai-lion/thai-lion-faces.obj", Points3D, 36000);
+    Utils::obtain2DPointsCorrespondenceFrom3DPoints(Points3D, P, Pl, points2D_l1, points2D_l2);
 
     Matrix3f F;
     QVector< QVector<Vector3f> > lists;
@@ -114,7 +114,7 @@ void MainWindow::on_actionSave_triggered()
     else
     {
         lists = Utils::sift2(img1Path.c_str(), img2Path.c_str());
-        F = Utils::ransac2(lists.at(0), lists.at(1), 200, 0.05, true, 8, false);
+        F = Utils::ransac2(lists.at(0), lists.at(1), 1000, 10, false, 8);
         /*F << -1.53484e-07, -1.49698e-06, 0.00180966, // Forcing F to be manual here, it's ok! We have some error in ransac method :(
              1.23965e-06, -5.18379e-08, -0.000459381,
              -0.00117125, 0.000696289, -0.320655;*/
@@ -123,9 +123,9 @@ void MainWindow::on_actionSave_triggered()
     cout << "F: " << endl;
     cout << F << endl << endl;
 
-    float errorF = Utils::calculateErrorFundamentalMatrix(lists.at(0), lists.at(1), F);
+    /*float errorF = Utils::calculateErrorFundamentalMatrix(lists.at(0), lists.at(1), F);
     cout << "Error F: " << endl;
-    cout << errorF << endl << endl;
+    cout << errorF << endl << endl;*/
 
     Matrix3f E = Utils::calculate_E(F, K, Kl);
     cout << "E: " << endl;
@@ -147,7 +147,7 @@ void MainWindow::on_actionSave_triggered()
         cout << "Pl: " << endl;
         cout << Pls.at(i) << endl << endl;
         points = Utils::get3DPointsByTriangulation(points2D_l1, points2D_l2, P, Pls.at(i));
-        Utils::exportObj(outputImgPath, points);
+        Utils::saveInObj(outputImgPath, points);
     }
 
 

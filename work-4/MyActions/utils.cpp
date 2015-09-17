@@ -948,12 +948,12 @@ cv::Mat Utils::QImage2Mat(const QImage &inImage, bool inCloneImageData)
     return cv::Mat();
 }
 
-Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSize, bool nonlinear)
+Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, double threshold, bool adaptativeSearch, int randomSize)
 {
     int pairsQuantity = std::min(pA.count(), pB.count());
     int ransacCounter = 0;
     QVector<int> inliers, maxInliers;
-    Matrix3f Hfinal;
+    Matrix3f Ffinal;
     double e = 0.5; // Outliers likelihood
     double p = 0.99;
     QVector<Vector3f> bestInliersA, bestInliersB;
@@ -967,62 +967,33 @@ Matrix3f Utils::ransac2(QVector<Vector3f> pA, QVector<Vector3f> pB, double N, do
             randomPointsInFirstImage.push_back(pA.at(randomPairsIndexes.at(i)));
             randomPointsInSecondImage.push_back(pB.at(randomPairsIndexes.at(i)));
         }
-        Matrix3f Htemp;
-        Htemp = calculate_F(randomPointsInFirstImage, randomPointsInSecondImage, true);
+        Matrix3f FTemp;
+        FTemp = calculate_F(randomPointsInFirstImage, randomPointsInSecondImage, true);
 
-        inliers = getRansacInliers(pA, pB, Htemp, threshold);
+        inliers = getRansacInliers(pA, pB, FTemp, threshold);
         if(inliers.size() > maxInliers.size()){
             maxInliers = inliers;
-            Hfinal = Htemp;
+            Ffinal = FTemp;
         }
         if(adaptativeSearch){
             e = 1 - ((float)inliers.size()/pairsQuantity);
             N = log(1-p)/log(1 - pow(1 - e, randomSize));
         }
         ransacCounter++;
-        cout << N << endl;
     }
-    qDebug() << ransacCounter;
-    qDebug() << maxInliers.size();
+    cout << "Ransac iterations: " << ransacCounter << endl;
+    cout << "Number of inliers: "  << maxInliers.size() << endl;
     for(int i =0 ; i < maxInliers.size(); i++ )
     {
         bestInliersA.push_back(pA.at(maxInliers.at(i)));
         bestInliersB.push_back(pB.at(maxInliers.at(i)));
     }
-    cout << "H do ransac2 antes de chamar gaussNewton" << endl;
-    cout << Hfinal << endl;
-    cout << endl;
-    if (nonlinear)
-    {
-        Matrix3f HfinalA = Hfinal;
-        VectorXf A(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
-        //cout << "Norma de H antes do gaussNewton" << endl;
-        //cout << A.squaredNorm() << endl;
-        Hfinal = gaussNewton(Hfinal, bestInliersA, bestInliersB);
-        Matrix3f HfinalB = Hfinal;
-        VectorXf B(Map<VectorXf>(Hfinal.data(), Hfinal.cols()*Hfinal.rows()));
-        //cout << "Norma de H depois do gaussNewton" << endl;
-        //cout << B.squaredNorm() << endl;
 
-        if (A.squaredNorm() < B.squaredNorm())
-        {
-            cout << "Erro de +" << (( B.squaredNorm() - A.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
-        }
-        else
-        {
-            cout << "Erro de -" << (( A.squaredNorm() - B.squaredNorm() ) / A.squaredNorm())*100 << "%" << endl;
-        }
-
-        if (HfinalA.norm() < HfinalB.norm())
-        {
-            cout << "Erro de +" << (( HfinalB.norm() - HfinalA.norm() ) / HfinalA.norm())*100 << "%" << endl;
-        }
-        else
-        {
-            cout << "Erro de -" << (( HfinalA.norm() - HfinalB.norm() ) / HfinalA.norm())*100 << "%" << endl;
-        }
-    }
-    return Hfinal;
+    Ffinal = calculate_F(bestInliersA, bestInliersB, true);
+    float errorF = Utils::calculateErrorFundamentalMatrix(bestInliersA, bestInliersB, Ffinal);
+    cout << "Error F: " << endl;
+    cout << errorF << endl << endl;
+    return Ffinal;
 }
 
 QVector<int> Utils::selectRandomPairs(int numberOfCorrespondences, int size)
@@ -1040,10 +1011,9 @@ QVector<int> Utils::getRansacInliers(QVector<Vector3f> pA, QVector<Vector3f> pB,
 {
     QVector<int> inliers;
     for(int i = 0; i < pA.size(); i++){
-        Vector3f v;
-        v = H * pA.at(i);
-        v/=v(2);
-        float distance = squaredEuclideanDistance(v, pB.at(i));
+        Vector3f l;
+        l = H.transpose().eval() * pB.at(i);
+        float distance = distanceLinePoint(l, pA.at(i));
         if(distance < threshold){
             inliers.push_back(i);
         }
@@ -1082,6 +1052,13 @@ float Utils::squaredEuclideanDistance(Vector3f a, Vector3f b)
     float distance = 0;
     for (int i = 0; i < a.size(); i++)
          distance += pow( (a(i) - b(i)), 2);
+    return distance;
+}
+
+float Utils::distanceLinePoint(Vector3f l, Vector3f p)
+{
+    float distance = 0;
+    distance = abs(l(0)*p(0) + l(1)*p(1) + l(2)) / sqrt(l(0)*l(0)+l(1)*l(1));
     return distance;
 }
 
@@ -1568,7 +1545,7 @@ QVector<VectorXf> Utils::get3DPointsByTriangulation(QVector<Vector3f> pA, QVecto
 
 }
 
-void Utils::exportObj(const string filename, const QVector<VectorXf>  points3D)
+void Utils::saveInObj(const string filename, const QVector<VectorXf>  points3D)
 {
     ofstream file;
     file.open(filename.c_str());
@@ -1608,7 +1585,7 @@ QVector< QVector<Vector3f> > Utils::thaiLionCorrespondences()
     return lists;
 }
 
-bool Utils::readPointsFromObj(const std::string& filename, std::vector<Eigen::Vector3f>& points3D, int max_point_count)
+bool Utils::read3DPointsFromObj(const std::string& filename, std::vector<Eigen::Vector3f>& points3D, int max_point_count)
 {
     std::ifstream inFile;
     inFile.open(filename.c_str());
@@ -1653,7 +1630,7 @@ bool Utils::readPointsFromObj(const std::string& filename, std::vector<Eigen::Ve
     return true;
 }
 
-void Utils::buildCorrespondenceFrom3DPoints(const std::vector<Eigen::Vector3f>& points3D,
+void Utils::obtain2DPointsCorrespondenceFrom3DPoints(const std::vector<Eigen::Vector3f>& points3D,
                                     const Eigen::MatrixXf& P,
                                     const Eigen::MatrixXf& Pl,
                                     QVector<Eigen::Vector3f>& points2D_l1,
@@ -1661,9 +1638,6 @@ void Utils::buildCorrespondenceFrom3DPoints(const std::vector<Eigen::Vector3f>& 
 {
     points2D_l1.clear();
     points2D_l2.clear();
-
-    assert(P.rows() == 3 && P.cols() == 4
-        && Pl.rows() == 3 && Pl.cols() == 4);
 
     for (int i=0; i < points3D.size(); i++)
     {
@@ -1686,10 +1660,8 @@ float Utils::calculateErrorFundamentalMatrix(QVector<Vector3f> pA, QVector<Vecto
     for (int i = 0; i < pA.size(); i++)
     {
         Vector3f x0 = pA.at(i);
-        //cout << x0 << endl;
         x0 /= x0(2);
         Vector3f x1 = pB.at(i);
-        //cout << x1 << endl;
         x1 /= x1(2);
 
         error += x1.transpose() * F * x0;
